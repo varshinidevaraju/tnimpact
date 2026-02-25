@@ -8,6 +8,7 @@ import { initializeDefaultStorage } from "./utils/storage";
 import { optimizeRoute } from './logic/routeOptimizer';
 import { calculateFuelConsumption, calculateCarbonFootprint } from './logic/fuelCalculator';
 import { saveToStorage, getFromStorage } from './utils/storage';
+import { getCurrentTrafficZone, getTrafficMultiplier } from "./data/trafficData";
 import './index.css';
 
 function App() {
@@ -28,17 +29,25 @@ function App() {
     }, []);
 
     useEffect(() => {
-    initializeDefaultStorage();
+        initializeDefaultStorage();
     }, []);
 
     useEffect(() => {
         if (user) saveToStorage('route_user', user);
         saveToStorage('route_orders', orders);
-        
+
         // Update stats
         const totalWeight = orders.reduce((sum, o) => sum + o.weight, 0);
         const estDistance = orders.length * 5;
-        const fuel = calculateFuelConsumption(estDistance, totalWeight);
+
+        const currentZone = getCurrentTrafficZone();
+        const trafficMultiplier = getTrafficMultiplier(currentZone);
+
+        // Corrected parameters to match fuelCalculator.js signature: (totalDistance, trafficFactor, vehicleConsumptionRate)
+        // Using a standard rate of 0.15 L/km as defined in routeOptimizer.js
+        const baseFuel = calculateFuelConsumption(estDistance, 1.0, 0.15);
+        const fuel = baseFuel * trafficMultiplier;
+
         const carbon = calculateCarbonFootprint(fuel);
         setStats({ fuel: fuel.toFixed(2), carbon: carbon.toFixed(2) });
     }, [orders, user]);
