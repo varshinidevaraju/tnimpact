@@ -2,7 +2,12 @@ import React from 'react';
 import RouteCard from './RouteCard';
 import OrderForm from './OrderForm';
 
-const Dashboard = ({ orders, optimizedOrders, onAddOrder }) => {
+const Dashboard = ({ orders, route, setRoute, optimizedOrders, onAddOrder }) => {
+    const handleGenerateRoute = () => {
+        // Update the global route state using optimizedOrders
+        setRoute(optimizedOrders);
+    };
+
     return (
         <div className="dashboard-grid">
             <div className="orders-section">
@@ -11,6 +16,9 @@ const Dashboard = ({ orders, optimizedOrders, onAddOrder }) => {
             <div className="optimization-section">
                 <div className="header-flex">
                     <h2>Optimized Route</h2>
+                    <button className="submit-btn" onClick={handleGenerateRoute} style={{ width: 'auto', padding: '0.5rem 1rem' }}>
+                        Generate Route
+                    </button>
                     <span className="count-badge">{optimizedOrders.length} Stops</span>
                 </div>
                 <div className="route-list">

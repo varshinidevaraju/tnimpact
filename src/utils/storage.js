@@ -6,7 +6,6 @@ export const saveToStorage = (key, data) => {
         console.error('Error saving to storage', error);
     }
 };
-
 export const getFromStorage = (key) => {
     try {
         const data = localStorage.getItem(key);
@@ -16,8 +15,6 @@ export const getFromStorage = (key) => {
         return null;
     }
 };
-
-// Remove a specific key from localStorage
 export const removeFromStorage = (key) => {
     try {
         localStorage.removeItem(key);

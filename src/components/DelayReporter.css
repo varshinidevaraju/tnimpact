@@ -1,0 +1,67 @@
+.delay-container {
+    background-color: #ffffff;
+    border: 1px solid #eee;
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 350px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.info-box {
+    margin-bottom: 20px;
+}
+
+.eta-label {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    display: block;
+}
+
+.eta-time {
+    font-size: 32px;
+    font-weight: 800;
+    color: #222;
+}
+
+.status-text {
+    font-weight: 600;
+    margin-top: 5px;
+}
+
+.on-time {
+    color: #22c55e;
+}
+
+.delayed {
+    color: #ef4444;
+}
+
+.report-button {
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.report-button:hover {
+    background-color: #e63939;
+    transform: translateY(-2px);
+}
+
+.report-button:active {
+    transform: scale(0.98);
+}
+
+.delay-notice {
+    font-size: 12px;
+    color: #666;
+    margin-top: 10px;
+}

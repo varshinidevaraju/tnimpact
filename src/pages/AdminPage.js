@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Dashboard from '../components/Dashboard';
 
-const AdminPage = ({ orders, optimizedOrders, onAddOrder, onLogout }) => {
+const AdminPage = ({ orders, route, setRoute, optimizedOrders, onAddOrder, onLogout }) => {
     const [activeTab, setActiveTab] = useState('overview');
 
     return (
@@ -60,6 +60,8 @@ const AdminPage = ({ orders, optimizedOrders, onAddOrder, onLogout }) => {
                     {activeTab === 'overview' ? (
                         <Dashboard
                             orders={orders}
+                            route={route}
+                            setRoute={setRoute}
                             optimizedOrders={optimizedOrders}
                             onAddOrder={onAddOrder}
                         />

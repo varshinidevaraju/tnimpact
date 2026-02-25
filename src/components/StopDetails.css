@@ -1,0 +1,45 @@
+.stop-details-container {
+    background-color: #ffffff;
+    border-left: 5px solid #4c6ef5;
+    /* Blue highlight border */
+    border-radius: 12px;
+    padding: 20px;
+    margin: 15px 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    /* Soft shadow for emphasis */
+}
+
+.stop-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.stop-name {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+}
+
+.arrival-time {
+    background-color: #ebf0ff;
+    color: #4c6ef5;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.location-text {
+    font-size: 14px;
+    color: #666;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.location-icon {
+    margin-right: 5px;
+}

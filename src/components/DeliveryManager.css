@@ -1,0 +1,76 @@
+.delivery-manager {
+    background-color: #ffffff;
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 400px;
+    margin: 20px auto;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f0f0f0;
+}
+
+.delivery-card {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.progress-label {
+    font-size: 14px;
+    color: #888;
+    font-weight: 600;
+}
+
+.stop-info h2 {
+    font-size: 28px;
+    color: #333;
+    margin: 10px 0;
+}
+
+.stop-address {
+    font-size: 16px;
+    color: #666;
+}
+
+.complete-button {
+    background-color: #40c057;
+    /* Success Green */
+    color: white;
+    border: none;
+    padding: 16px 32px;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(64, 192, 87, 0.3);
+}
+
+.complete-button:hover {
+    background-color: #37a34a;
+    transform: translateY(-2px);
+}
+
+.complete-button:active {
+    transform: scale(0.98);
+}
+
+.completion-screen {
+    padding: 40px 20px;
+}
+
+.completion-icon {
+    font-size: 60px;
+    display: block;
+    margin-bottom: 20px;
+}
+
+.completion-screen h2 {
+    color: #333;
+    font-size: 24px;
+}
+
+.completion-screen p {
+    color: #666;
+    margin-top: 10px;
+}

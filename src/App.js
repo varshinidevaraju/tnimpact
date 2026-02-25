@@ -5,7 +5,7 @@ import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
 import { mockOrders } from './data/mockOrders';
 import { initializeDefaultStorage } from "./utils/storage";
-import { optimizeRoute } from './logic/routeOptimizer';
+import { optimizeRoute, optimizeWithPersistentHistory } from './logic/routeOptimizer';
 import { calculateFuelConsumption, calculateCarbonFootprint } from './logic/fuelCalculator';
 import { saveToStorage, getFromStorage } from './utils/storage';
 import { getCurrentTrafficZone, getTrafficMultiplier } from "./data/trafficData";
@@ -14,6 +14,10 @@ import './index.css';
 function App() {
     const [user, setUser] = useState(null); // { email, role }
     const [orders, setOrders] = useState([]);
+    const [route, setRoute] = useState([]);
+    const [currentStopIndex, setCurrentStopIndex] = useState(0);
+    const [routeStatus, setRouteStatus] = useState('On Time');
+    const [delayMinutes, setDelayMinutes] = useState(0);
     const [stats, setStats] = useState({ fuel: 0, carbon: 0 });
 
     useEffect(() => {
@@ -26,6 +30,16 @@ function App() {
         } else {
             setOrders(mockOrders);
         }
+
+        // Load route and progress from localStorage
+        const savedRoute = getFromStorage('route_active');
+        if (savedRoute) setRoute(savedRoute);
+
+        const savedIndex = getFromStorage('route_index');
+        if (savedIndex !== null) setCurrentStopIndex(Number(savedIndex));
+
+        const savedStatus = getFromStorage('route_status');
+        if (savedStatus) setRouteStatus(savedStatus);
     }, []);
 
     useEffect(() => {
@@ -35,6 +49,9 @@ function App() {
     useEffect(() => {
         if (user) saveToStorage('route_user', user);
         saveToStorage('route_orders', orders);
+        saveToStorage('route_active', route);
+        saveToStorage('route_index', currentStopIndex);
+        saveToStorage('route_status', routeStatus);
 
         // Update stats
         const safeOrders = Array.isArray(orders) ? orders : [];
@@ -55,9 +72,10 @@ function App() {
             fuel: (fuel || 0).toFixed(2),
             carbon: (carbon || 0).toFixed(2)
         });
-    }, [orders, user]);
+    }, [orders, user, route, currentStopIndex, routeStatus]);
 
-    const optimizedOrders = optimizeRoute(orders.filter(o => o.status === 'Pending'), {});
+    const optimizationResult = optimizeRoute({ lat: 0, lng: 0 }, orders.filter(o => o.status === 'Pending'));
+    const optimizedOrders = optimizationResult.orderedRoute;
 
     const handleLogin = (userData) => {
         setUser(userData);
@@ -76,23 +94,65 @@ function App() {
         setOrders(orders.map(o => o.id === id ? { ...o, status: 'Completed' } : o));
     };
 
+    const handleRecalculateRoute = () => {
+        console.log("Recalculating route based on current conditions...");
+
+        // Simulating current location for the optimizer
+        const currentLoc = { lat: 0, lng: 0 };
+
+        // Important: We only optimize the REMAINING stops
+        const updatedRoute = optimizeWithPersistentHistory(
+            currentLoc,
+            route,
+            currentStopIndex,
+            0.15,
+            delayMinutes
+        );
+
+        setRoute(updatedRoute);
+    };
+
+    const toggleRole = () => {
+        const newRole = user.role === 'admin' ? 'driver' : 'admin';
+        setUser({ ...user, role: newRole });
+    };
+
     if (!user) {
         return <LoginPage onLogin={handleLogin} />;
     }
 
+    // Common toggle component for development
+    const RoleToggle = () => (
+        <button className="dev-role-toggle" onClick={toggleRole}>
+            Switch to {user.role === 'admin' ? 'Driver' : 'Admin'} Mode
+        </button>
+    );
+
     if (user.role === 'admin') {
         return (
-            <AdminPage
-                orders={orders}
-                optimizedOrders={optimizedOrders}
-                onAddOrder={handleAddOrder}
-                onLogout={handleLogout}
-            />
+            <>
+                <AdminPage
+                    orders={orders}
+                    setOrders={setOrders}
+                    route={route}
+                    setRoute={setRoute}
+                    currentStopIndex={currentStopIndex}
+                    setCurrentStopIndex={setCurrentStopIndex}
+                    routeStatus={routeStatus}
+                    setRouteStatus={setRouteStatus}
+                    delayMinutes={delayMinutes}
+                    optimizedOrders={optimizedOrders}
+                    onAddOrder={handleAddOrder}
+                    onLogout={handleLogout}
+                />
+                <RoleToggle />
+            </>
         );
     }
 
     return (
         <div className="app-container">
+            <RoleToggle />
             <header className="app-header">
                 <div className="logo">
                     <span className="logo-icon">🚚</span>
@@ -114,7 +174,18 @@ function App() {
 
             <main className="content">
                 <DriverView
-                    currentOrder={optimizedOrders[0]}
+                    orders={orders}
+                    setOrders={setOrders}
+                    route={route}
+                    setRoute={setRoute}
+                    currentStopIndex={currentStopIndex}
+                    setCurrentStopIndex={setCurrentStopIndex}
+                    routeStatus={routeStatus}
+                    setRouteStatus={setRouteStatus}
+                    delayMinutes={delayMinutes}
+                    setDelayMinutes={setDelayMinutes}
+                    recalculateRoute={handleRecalculateRoute}
+                    currentOrder={optimizedOrders[currentStopIndex]}
                     onComplete={handleCompleteOrder}
                 />
             </main>

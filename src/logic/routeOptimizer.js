@@ -23,14 +23,30 @@ const KM_PER_UNIT = 111;
 const DEFAULT_VEHICLE_RATE = 0.15; // 0.15 L/km
 
 /**
- * Dynamic Route Optimizer with Delay Handling
+ * Dynamic Route Optimizer with Partial Recalculation
  * 
  * @param {Object} currentLocation - Current position { lat, lng }
- * @param {Array} remainingStops - List of stops yet to be visited
+ * @param {Array} fullRoute - The entire list of stops (completed + pending)
+ * @param {number} currentStopIndex - The index the driver is currently at
  * @param {number} [vehicleRate] - Optional liters per km
- * @param {number} [delayMinutes] - Delay at current location (Scenario 2 rule: >10 mins triggers recalculation)
- * @returns {Object} - Complete route summary
+ * @param {number} [delayMinutes] - Delay at current location
+ * @returns {Array} - The new full route with pending stops optimized
  */
+export const optimizeWithPersistentHistory = (currentLocation, fullRoute, currentStopIndex, vehicleRate = DEFAULT_VEHICLE_RATE, delayMinutes = 0) => {
+    // 1. Separate stops into Completed and Remaining
+    // Slice(0, currentIndex) gets stops up to where we are (including the one just finished)
+    const completedStops = fullRoute.slice(0, currentStopIndex);
+    const pendingStops = fullRoute.slice(currentStopIndex);
+
+    // 2. Only optimize the pending (remaining) stops
+    // We send the pending list to our existing logic
+    const optimizationResult = optimizeRoute(currentLocation, pendingStops, vehicleRate, delayMinutes);
+
+    // 3. Combine them back together
+    // This keeps the "already visited" history untouched
+    return [...completedStops, ...optimizationResult.orderedRoute];
+};
+
 export const optimizeRoute = (currentLocation, remainingStops, vehicleRate = DEFAULT_VEHICLE_RATE, delayMinutes = 0) => {
     let orderedRoute = [];
     let totalDistance = 0;
