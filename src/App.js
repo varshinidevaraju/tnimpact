@@ -37,19 +37,24 @@ function App() {
         saveToStorage('route_orders', orders);
 
         // Update stats
-        const totalWeight = orders.reduce((sum, o) => sum + o.weight, 0);
-        const estDistance = orders.length * 5;
+        const safeOrders = Array.isArray(orders) ? orders : [];
+        const totalWeight = safeOrders.reduce((sum, o) => sum + (o?.weight || 0), 0);
+        const estDistance = safeOrders.length * 5;
 
-        const currentZone = getCurrentTrafficZone();
-        const trafficMultiplier = getTrafficMultiplier(currentZone);
+        // Defensive traffic data acquisition
+        const currentZone = getCurrentTrafficZone() || "low";
+        const trafficMultiplier = getTrafficMultiplier(currentZone) || 1.0;
 
         // Corrected parameters to match fuelCalculator.js signature: (totalDistance, trafficFactor, vehicleConsumptionRate)
         // Using a standard rate of 0.15 L/km as defined in routeOptimizer.js
-        const baseFuel = calculateFuelConsumption(estDistance, 1.0, 0.15);
+        const baseFuel = calculateFuelConsumption(estDistance, 1.0, 0.15) || 0;
         const fuel = baseFuel * trafficMultiplier;
 
-        const carbon = calculateCarbonFootprint(fuel);
-        setStats({ fuel: fuel.toFixed(2), carbon: carbon.toFixed(2) });
+        const carbon = calculateCarbonFootprint(fuel) || 0;
+        setStats({
+            fuel: (fuel || 0).toFixed(2),
+            carbon: (carbon || 0).toFixed(2)
+        });
     }, [orders, user]);
 
     const optimizedOrders = optimizeRoute(orders.filter(o => o.status === 'Pending'), {});
