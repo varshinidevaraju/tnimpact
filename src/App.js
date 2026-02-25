@@ -4,7 +4,8 @@ import DriverView from './components/DriverView';
 import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
 import { mockOrders } from './data/mockOrders';
-import { optimizeRoute } from './logic/optimizer';
+import { initializeDefaultStorage } from "./utils/storage";
+import { optimizeRoute } from './logic/routeOptimizer';
 import { calculateFuelConsumption, calculateCarbonFootprint } from './logic/fuelCalculator';
 import { saveToStorage, getFromStorage } from './utils/storage';
 import './index.css';
@@ -27,9 +28,13 @@ function App() {
     }, []);
 
     useEffect(() => {
+    initializeDefaultStorage();
+    }, []);
+
+    useEffect(() => {
         if (user) saveToStorage('route_user', user);
         saveToStorage('route_orders', orders);
-
+        
         // Update stats
         const totalWeight = orders.reduce((sum, o) => sum + o.weight, 0);
         const estDistance = orders.length * 5;

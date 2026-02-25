@@ -1,13 +1,45 @@
-export const trafficData = {
-    'Fashion Ave': { congestion: 0.2, speedLimit: 40 },
-    'Innovation Blvd': { congestion: 0.8, speedLimit: 50 },
-    'Culinary Way': { congestion: 0.4, speedLimit: 30 },
-    'Metro St': { congestion: 0.9, speedLimit: 45 },
-    'Glass Rd': { congestion: 0.1, speedLimit: 35 },
+import { saveToStorage, getFromStorage } from "../utils/storage";
+
+// Traffic zones configuration
+export const trafficZones = {
+    low: 1.0,
+    medium: 1.3,
+    high: 1.6
 };
 
-export const getDelayFactor = (street) => {
-    const data = trafficData[street];
-    if (!data) return 1.0;
-    return 1 + (data.congestion * 0.5); // Max 50% delay
+// Get multiplier safely
+export const getTrafficMultiplier = (zone) => {
+    if (!zone || !trafficZones[zone]) {
+        return 1.0; // Default traffic
+    }
+    return trafficZones[zone];
 };
+
+// Save selected traffic zone
+export const setTrafficZone = (zone) => {
+    try {
+        if (trafficZones[zone]) {
+            saveToStorage("route_traffic", zone);
+        }
+    } catch (error) {
+        console.error("Error setting traffic zone", error);
+    }
+};
+
+// Get currently selected traffic zone
+export const getCurrentTrafficZone = () => {
+    try {
+        const savedZone = getFromStorage("route_traffic");
+        return savedZone && trafficZones[savedZone]
+            ? savedZone
+            : "low"; // Default zone
+    } catch (error) {
+        console.error("Error getting current traffic zone", error);
+        return "low";
+    }
+};
+if (typeof window !== "undefined") {
+    window.setTrafficZone = setTrafficZone;
+    window.getCurrentTrafficZone = getCurrentTrafficZone;
+    window.getTrafficMultiplier = getTrafficMultiplier;
+}
