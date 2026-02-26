@@ -1,33 +1,64 @@
 import React from 'react';
-import RouteCard from './RouteCard';
 import OrderForm from './OrderForm';
-
-const Dashboard = ({ orders, route, setRoute, optimizedOrders, onAddOrder }) => {
+import RouteMap from './RouteMap';
+import PremiumStats from './PremiumStats';
+const Dashboard = ({
+    orders,
+    route,
+    setRoute,
+    optimizedOrders,
+    onAddOrder,
+    onDeleteOrder,
+    onActiveOrdersClick,
+    onRouteStopsClick,
+    onCompletedOrdersClick
+}) => {
     const handleGenerateRoute = () => {
-        // Update the global route state using optimizedOrders
         setRoute(optimizedOrders);
     };
 
     return (
-        <div className="dashboard-grid">
-            <div className="orders-section">
-                <OrderForm onAddOrder={onAddOrder} />
-            </div>
-            <div className="optimization-section">
-                <div className="header-flex">
-                    <h2>Optimized Route</h2>
-                    <button className="submit-btn" onClick={handleGenerateRoute} style={{ width: 'auto', padding: '0.5rem 1rem' }}>
-                        Generate Route
+        <div className="command-center">
+            <section className="stats-strip">
+                <PremiumStats
+                    orders={orders}
+                    route={optimizedOrders}
+                    onActiveOrdersClick={onActiveOrdersClick}
+                    onRouteStopsClick={onRouteStopsClick}
+                    onCompletedOrdersClick={onCompletedOrdersClick}
+                    compact={false}
+                />
+            </section>
+
+            <div className="main-control-grid">
+                <div className="control-pane">
+                    <div className="pane-header">
+                        <h3>New Assignment</h3>
+                        <p>Dispatch new payloads into the active network</p>
+                    </div>
+                    <OrderForm onAddOrder={onAddOrder} />
+
+                    <button className="dispatch-action-btn" onClick={handleGenerateRoute}>
+                        <span className="btn-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                            </svg>
+                        </span>
+                        Optimize & Dispatch Fleet
                     </button>
-                    <span className="count-badge">{optimizedOrders.length} Stops</span>
                 </div>
-                <div className="route-list">
-                    {optimizedOrders.map((order, index) => (
-                        <RouteCard key={order.id} order={order} index={index} />
-                    ))}
-                    {optimizedOrders.length === 0 && (
-                        <p className="empty-state">No orders to optimize yet.</p>
-                    )}
+
+                <div className="map-pane">
+                    <div className="pane-header">
+                        <h3>Active Fleet Telemetry</h3>
+                        <div className="telemetry-tags">
+                            <span className="tag">GPS: Active</span>
+                            <span className="tag">Network: Stable</span>
+                        </div>
+                    </div>
+                    <div className="map-container-inner">
+                        <RouteMap stops={optimizedOrders} />
+                    </div>
                 </div>
             </div>
         </div>

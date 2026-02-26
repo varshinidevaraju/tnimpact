@@ -1,21 +1,24 @@
 .tracking-map-container {
     width: 100%;
     height: 500px;
-    border-radius: 20px;
+    border-radius: 1.5rem;
     overflow: hidden;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     position: relative;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    z-index: 1;
 }
 
 .tracking-overlay {
     position: absolute;
     top: 20px;
     left: 20px;
-    background: white;
+    background: #ffffff;
     padding: 12px 20px;
     border-radius: 12px;
     z-index: 1000;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .tracking-status {
@@ -24,7 +27,7 @@
     gap: 10px;
     font-size: 14px;
     font-weight: 700;
-    color: #333;
+    color: #101828;
 }
 
 .blink {
@@ -41,7 +44,140 @@
     }
 }
 
+.route-info-card {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    background: white;
+    padding: 12px 16px;
+    border-radius: 16px;
+    z-index: 1000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.route-info-card h4 {
+    margin: 0;
+    font-size: 14px;
+    color: #1a1a1a;
+}
+
+.route-info-card p {
+    margin: 2px 0 0 0;
+    font-size: 12px;
+    color: #666;
+}
+
 .leaflet-container {
     height: 100%;
     width: 100%;
+    z-index: 1;
+}
+
+/* 3D Navigation Mode Tilt - Google Maps Style */
+.navigating-3d {
+    perspective: 1000px;
+    background: #e4e0dc;
+    /* Typical map background color to hide edges */
+}
+
+.navigating-3d .leaflet-container {
+    transform: rotateX(50deg) scale(1.4);
+    transform-origin: 50% 60%;
+    transition: transform 1s ease-out;
+}
+
+/* Hide controls in 3D mode for a cleaner look */
+.navigating-3d .leaflet-control-container {
+    display: none;
+}
+
+/* Futuristic Glowing Marker */
+.custom-glowing-stop {
+    background: transparent;
+    border: none;
+}
+
+.glowing-stop-wrapper {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stop-core {
+    width: 12px;
+    height: 12px;
+    background: #ff5a5f;
+    border: 3px solid #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(255, 90, 95, 0.4);
+    z-index: 2;
+}
+
+.stop-label {
+    position: absolute;
+    top: -24px;
+    background: #000;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    z-index: 10;
+}
+
+.pulse-ring {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border: 2px solid rgba(255, 90, 95, 0.5);
+    border-radius: 50%;
+    animation: radar-pulse 2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+    background: rgba(255, 90, 95, 0.15);
+}
+
+@keyframes radar-pulse {
+    0% {
+        transform: scale(0.5);
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(3);
+        opacity: 0;
+    }
+}
+
+/* Custom dark popup styling */
+.futuristic-popup .leaflet-popup-content-wrapper,
+.futuristic-popup .leaflet-popup-tip {
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(0, 242, 254, 0.4);
+    box-shadow: 0 0 20px rgba(0, 242, 254, 0.2);
+    backdrop-filter: blur(8px);
+    border-radius: 8px;
+    color: #cbd5e1;
+    font-family: 'Inter', sans-serif;
+    text-align: center;
+}
+
+.stop-popup strong {
+    color: #00f2fe;
+    font-size: 14px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-shadow: 0 0 8px rgba(0, 242, 254, 0.5);
 }

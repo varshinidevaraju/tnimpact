@@ -1,5 +1,74 @@
 import React, { useState } from 'react';
+import LiveTrackingMap from './LiveTrackingMap';
 import './DriverView.css';
+
+const DriverIcons = {
+    Connectivity: () => (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+            <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+            <line x1="12" y1="20" x2="12.01" y2="20" />
+        </svg>
+    ),
+    GPS: () => (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="3" />
+        </svg>
+    ),
+    Fuel: () => (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 22V2h11v11h2V2h4v7" />
+            <path d="M7 22v-4" />
+            <path d="M11 22v-4" />
+            <path d="M14 13h4v11" />
+            <circle cx="17.5" cy="17.5" r="2.5" />
+        </svg>
+    ),
+    Navigation: () => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="3 11 22 2 13 21 11 13 3 11" />
+        </svg>
+    ),
+    Warning: () => (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+    ),
+    Success: () => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+        </svg>
+    ),
+    ArrowLeft: () => (
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 14 4 9 9 4" />
+            <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
+        </svg>
+    ),
+    ArrowRight: () => (
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 14 20 9 15 4" />
+            <path d="M4 20v-7a4 4 0 0 1 4-4h12" />
+        </svg>
+    ),
+    ArrowStraight: () => (
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="19" x2="12" y2="5" />
+            <polyline points="5 12 12 5 19 12" />
+        </svg>
+    ),
+    Logout: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+    )
+};
 
 const DriverView = ({
     route = [],
@@ -9,139 +78,166 @@ const DriverView = ({
     setRouteStatus,
     delayMinutes,
     setDelayMinutes,
-    recalculateRoute
+    recalculateRoute,
+    onLogout
 }) => {
     const [fuel, setFuel] = useState(100);
     const [isLoading, setIsLoading] = useState(false);
+    const [isNavigating, setIsNavigating] = useState(false);
+    const [navStep, setNavStep] = useState({ instruction: '', distance: 0 });
 
     const currentStop = route[currentStopIndex];
     const nextStop = route[currentStopIndex + 1];
-
-    // Progress calculation based on the global route array
+    const isFinished = route.length > 0 && currentStopIndex >= route.length;
     const progress = route.length > 0 ? Math.round(((currentStopIndex) / route.length) * 100) : 0;
 
     const handleReportDelay = () => {
         setIsLoading(true);
-
-        // 1. Add 10 minutes delay
         setDelayMinutes(prev => prev + 10);
-
-        // 2. Change routeStatus to "Delayed"
         setRouteStatus('Delayed');
-
-        // 3. Trigger route recalculation
         recalculateRoute();
-
-        // 4. Hide spinner after 2 seconds
-        setTimeout(() => {
-            setIsLoading(false);
-        }, 2000);
+        setTimeout(() => setIsLoading(false), 2000);
     };
-
-    // Check if we have reached the end of the route
-    const isFinished = route.length > 0 && currentStopIndex >= route.length;
 
     const handleComplete = () => {
         if (!isFinished) {
-            // Decrease fuel and move to next index globally
             setFuel(prev => Math.max(0, prev - 8));
             setCurrentStopIndex(prev => prev + 1);
         }
     };
 
-    // If there is no route generated yet at all
     if (route.length === 0) {
         return (
-            <div className="driver-screen">
-                <div className="driver-card empty-state">
-                    <span className="empty-icon">⏳</span>
-                    <h2>Awaiting Route</h2>
-                    <p>Please wait for dispatch to generate your delivery route.</p>
+            <div className="driver-redesigned-screen empty">
+                <div className="empty-command-center">
+                    <div className="branding">
+                        <span className="logo">R</span>
+                        <h1>RouteOptima Driver</h1>
+                    </div>
+                    <div className="status-message">
+                        <div className="pulse-loader"></div>
+                        <h2>Awaiting Dispatch</h2>
+                        <p>Syncing with master network for your daily operations...</p>
+                    </div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="driver-screen">
-            <div className="driver-card">
-                {isLoading && (
-                    <div className="loader-container">
-                        <div className="spinner"></div>
-                        <span className="loading-text">Optimizing Route...</span>
-                    </div>
-                )}
-                <span className="offline-status">Offline Mode Active</span>
-
-                {/* Current Stop Section */}
-                <header className="stop-section">
-                    <span className="label">Current Stop</span>
-                    <h1 className="stop-name">
-                        {isFinished ? "Route Completed ✅" : currentStop?.customer}
-                    </h1>
-                    <p className="address">
-                        {isFinished ? "All deliveries finished for this shift." : currentStop?.address}
-                    </p>
-                </header>
-
-                <div className="divider" />
-
-                {/* Next Stop Section */}
-                <section className="stop-section">
-                    <span className="label">Next Stop</span>
-                    <div className="next-stop-info">
-                        <h2 className="stop-name">{nextStop ? nextStop.customer : "None (End of Route)"}</h2>
-                        <span className="distance">{nextStop ? "Calculating..." : "--"}</span>
-                    </div>
-                </section>
-
-                {/* Info Grid for ETA and Progress */}
-                <div className="info-grid">
-                    <div className="info-item">
-                        <span className="label">ETA</span>
-                        <div className="eta-value">12:40</div>
-                        <span className="time-remaining">
-                            {delayMinutes > 0 ? `+${delayMinutes}m delay reported` : 'approx. 15 mins'}
-                        </span>
-                    </div>
-
-                    <div className="info-item">
-                        <span className="label">Route Progress</span>
-                        <div className="progress-container">
-                            <div className="progress-bar" style={{ width: `${progress}%` }}></div>
-                        </div>
-                        <span className="progress-text">{progress}% Tracked</span>
-                    </div>
-
-                    <div className="info-item">
-                        <span className="label">Fuel Remaining</span>
-                        <div className="fuel-display">
-                            <span className="fuel-icon">⛽</span>
-                            <span className={`fuel-value ${fuel < 20 ? 'low' : ''}`}>{fuel}%</span>
+        <div className={`driver-redesigned-screen ${isNavigating ? 'nav-mode' : ''}`}>
+            {/* Top Bar - Status Indicators */}
+            <div className="driver-status-bar">
+                <div className="branding-mini">
+                    <span className="mini-logo">R</span>
+                    <div className="driver-telemetry-text">
+                        <span className="driver-id">D042-ALPHA</span>
+                        <div className="gps-status-line">
+                            <span className="gps-pulse"></span>
+                            <span className="gps-text">GPS ACTIVE</span>
                         </div>
                     </div>
                 </div>
-
-                {/* Action Buttons */}
-                <div className="action-footer">
-                    <button
-                        className={`delay-btn ${routeStatus === 'Delayed' ? 'active' : ''}`}
-                        onClick={handleReportDelay}
-                        disabled={isFinished}
-                    >
-                        {routeStatus === 'Delayed' ? '⚠️ Delay Reported' : 'Report Delay'}
-                    </button>
-
-                    <button
-                        className="complete-btn"
-                        onClick={handleComplete}
-                        disabled={isFinished}
-                        style={isFinished ? { background: '#ccc', boxShadow: 'none', cursor: 'not-allowed' } : {}}
-                    >
-                        {isFinished ? "Finished" : "Complete Delivery"}
-                    </button>
+                <div className="system-stats">
+                    <div className="stat-pill"><DriverIcons.Connectivity /> 5G</div>
+                    <div className="stat-pill fuel"><DriverIcons.Fuel /> {fuel}%</div>
                 </div>
             </div>
+
+            {/* Background Map View */}
+            <div className="driver-viewport-map">
+                <LiveTrackingMap
+                    routeCoordinates={route.map(stop => [stop.lat, stop.lng])}
+                    currentStopIndex={currentStopIndex}
+                    isNavigating={isNavigating}
+                    onNavUpdate={setNavStep}
+                />
+            </div>
+
+            {/* Navigation Instruction Overlay (Floating Top) */}
+            {isNavigating && !isFinished && (
+                <div className="floating-nav-panel">
+                    <div className="nav-turn-indicator">
+                        {navStep.instruction.toLowerCase().includes('left') ? <DriverIcons.ArrowLeft /> :
+                            navStep.instruction.toLowerCase().includes('straight') ? <DriverIcons.ArrowStraight /> :
+                                <DriverIcons.ArrowRight />}
+                    </div>
+                    <div className="nav-text">
+                        <span className="dist">{navStep.distance}m</span>
+                        <h2>{navStep.instruction || "Following Optimized Path"}</h2>
+                        <p>Next: {currentStop?.customer}</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Floating Operations Panel (Bottom) */}
+            <div className="floating-ops-container">
+                <div className="ops-card">
+                    <div className="ops-header">
+                        <div className="stop-badge">STOP {currentStopIndex + 1} / {route.length}</div>
+                        <div className="progress-mini">
+                            <div className="bar" style={{ width: `${progress}%` }}></div>
+                        </div>
+                    </div>
+
+                    <div className="main-info">
+                        <h1 className="customer-name">
+                            {isFinished ? "OPERATIONS COMPLETE" : currentStop?.customer}
+                        </h1>
+                        <p className="address">
+                            {isNavigating ? "LIVE NAVIGATION ACTIVE" : (isFinished ? "Awaiting return-to-base clearance" : currentStop?.address)}
+                        </p>
+                        <div className="card-divider"></div>
+                    </div>
+
+                    {!isFinished && (
+                        <div className="ops-stats-row">
+                            <div className="mini-stat">
+                                <label>ETA</label>
+                                <span>12:45 <small>PM</small></span>
+                            </div>
+                            <div className="mini-stat">
+                                <label>REMAINING</label>
+                                <span>{route.length - currentStopIndex} Stops</span>
+                            </div>
+                            <div className="mini-stat">
+                                <label>DELAY</label>
+                                <span className={delayMinutes > 0 ? 'warning' : ''}>+{delayMinutes}m</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="ops-actions">
+                        {!isFinished ? (
+                            <>
+                                <button
+                                    className={`action-btn secondary ${isNavigating ? 'active' : ''}`}
+                                    onClick={() => setIsNavigating(!isNavigating)}
+                                >
+                                    <DriverIcons.Navigation /> {isNavigating ? 'Exit Nav' : 'Start Nav'}
+                                </button>
+                                <button className="action-btn secondary warning" onClick={handleReportDelay}>
+                                    <DriverIcons.Warning /> Alert Delay
+                                </button>
+                                <button className="action-btn primary" onClick={handleComplete}>
+                                    <DriverIcons.Success /> Arrived
+                                </button>
+                            </>
+                        ) : (
+                            <button className="action-btn primary logout" onClick={onLogout}>
+                                <DriverIcons.Logout /> End Shift
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {isLoading && (
+                <div className="ops-overlay">
+                    <div className="loader"></div>
+                    <span>CALCULATING OPTIMAL PATH...</span>
+                </div>
+            )}
         </div>
     );
 };

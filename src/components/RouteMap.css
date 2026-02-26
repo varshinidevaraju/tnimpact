@@ -1,23 +1,114 @@
 .route-map-wrapper {
     width: 100%;
-    height: 450px;
-    border-radius: 16px;
+    height: 100%;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    border: 2px solid #f0f0f0;
-    margin: 20px 0;
+    position: relative;
+    z-index: 1;
 }
 
+/* Grayscale Map Theme */
 .leaflet-container {
     height: 100%;
     width: 100%;
+    filter: grayscale(100%) contrast(1.1) brightness(0.95);
 }
 
-.stop-popup {
-    text-align: center;
+/* Floating Address Labels */
+.address-label-marker {
+    background: transparent;
+    border: none;
 }
 
-.stop-popup strong {
-    color: #4c6ef5;
-    font-size: 14px;
+.map-label-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #ffffff;
+    padding: 6px 14px;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    min-width: 80px;
+    justify-content: center;
+}
+
+.map-label-wrapper::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid #ffffff;
+}
+
+.label-number {
+    background: #000;
+    color: #fff;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.special-label .label-number {
+    background: #fff;
+    color: #000;
+}
+
+.label-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1a1a;
+    font-family: inherit;
+}
+
+/* Special labels (Start/End) using black background like the reference image */
+.special-label {
+    background: #000000;
+    border: none;
+}
+
+.special-label .label-text {
+    color: #ffffff;
+}
+
+.special-label::after {
+    border-top-color: #000000;
+}
+
+/* Polylines look sharper in black on grayscale maps */
+.leaflet-interactive {
+    stroke-dasharray: none;
+    transition: all 0.3s ease;
+}
+
+@keyframes radar-pulse {
+    0% {
+        transform: scale(0.5);
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(3);
+        opacity: 0;
+    }
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import DriverView from './components/DriverView';
 import LoginPage from './pages/LoginPage';
@@ -11,14 +12,24 @@ import { saveToStorage, getFromStorage } from './utils/storage';
 import { getCurrentTrafficZone, getTrafficMultiplier } from "./data/trafficData";
 import './index.css';
 
-function App() {
-    const [user, setUser] = useState(null); // { email, role }
+// Protected Route Component
+const ProtectedRoute = ({ children, allowedRole, user }) => {
+    if (!user) return <Navigate to="/login" replace />;
+    if (allowedRole && user.role !== allowedRole) {
+        return <Navigate to={user.role === 'admin' ? '/admin' : '/driver'} replace />;
+    }
+    return children;
+};
+
+function AppContent() {
+    const [user, setUser] = useState(null);
     const [orders, setOrders] = useState([]);
     const [route, setRoute] = useState([]);
     const [currentStopIndex, setCurrentStopIndex] = useState(0);
     const [routeStatus, setRouteStatus] = useState('On Time');
     const [delayMinutes, setDelayMinutes] = useState(0);
     const [stats, setStats] = useState({ fuel: 0, carbon: 0 });
+    const navigate = useNavigate();
 
     useEffect(() => {
         const savedUser = getFromStorage('route_user');
@@ -31,7 +42,6 @@ function App() {
             setOrders(mockOrders);
         }
 
-        // Load route and progress from localStorage
         const savedRoute = getFromStorage('route_active');
         if (savedRoute) setRoute(savedRoute);
 
@@ -40,9 +50,7 @@ function App() {
 
         const savedStatus = getFromStorage('route_status');
         if (savedStatus) setRouteStatus(savedStatus);
-    }, []);
 
-    useEffect(() => {
         initializeDefaultStorage();
     }, []);
 
@@ -53,17 +61,13 @@ function App() {
         saveToStorage('route_index', currentStopIndex);
         saveToStorage('route_status', routeStatus);
 
-        // Update stats
         const safeOrders = Array.isArray(orders) ? orders : [];
         const totalWeight = safeOrders.reduce((sum, o) => sum + (o?.weight || 0), 0);
         const estDistance = safeOrders.length * 5;
 
-        // Defensive traffic data acquisition
         const currentZone = getCurrentTrafficZone() || "low";
         const trafficMultiplier = getTrafficMultiplier(currentZone) || 1.0;
 
-        // Corrected parameters to match fuelCalculator.js signature: (totalDistance, trafficFactor, vehicleConsumptionRate)
-        // Using a standard rate of 0.15 L/km as defined in routeOptimizer.js
         const baseFuel = calculateFuelConsumption(estDistance, 1.0, 0.15) || 0;
         const fuel = baseFuel * trafficMultiplier;
 
@@ -79,11 +83,14 @@ function App() {
 
     const handleLogin = (userData) => {
         setUser(userData);
+        if (userData.role === 'admin') navigate('/admin');
+        else navigate('/driver');
     };
 
     const handleLogout = () => {
         setUser(null);
         localStorage.removeItem('route_user');
+        navigate('/login');
     };
 
     const handleAddOrder = (newOrder) => {
@@ -94,13 +101,12 @@ function App() {
         setOrders(orders.map(o => o.id === id ? { ...o, status: 'Completed' } : o));
     };
 
+    const handleDeleteOrder = (id) => {
+        setOrders(orders.filter(o => o.id !== id));
+    };
+
     const handleRecalculateRoute = () => {
-        console.log("Recalculating route based on current conditions...");
-
-        // Simulating current location for the optimizer
         const currentLoc = { lat: 0, lng: 0 };
-
-        // Important: We only optimize the REMAINING stops
         const updatedRoute = optimizeWithPersistentHistory(
             currentLoc,
             route,
@@ -108,92 +114,85 @@ function App() {
             0.15,
             delayMinutes
         );
-
         setRoute(updatedRoute);
     };
 
     const toggleRole = () => {
         const newRole = user.role === 'admin' ? 'driver' : 'admin';
-        setUser({ ...user, role: newRole });
+        const updatedUser = { ...user, role: newRole };
+        setUser(updatedUser);
+        navigate(newRole === 'admin' ? '/admin' : '/driver');
     };
 
-    if (!user) {
-        return <LoginPage onLogin={handleLogin} />;
-    }
-
-    // Common toggle component for development
-    const RoleToggle = () => (
-        <button className="dev-role-toggle" onClick={toggleRole}>
-            Switch to {user.role === 'admin' ? 'Driver' : 'Admin'} Mode
-        </button>
-    );
-
-    if (user.role === 'admin') {
-        return (
-            <>
-                <AdminPage
-                    orders={orders}
-                    setOrders={setOrders}
-                    route={route}
-                    setRoute={setRoute}
-                    currentStopIndex={currentStopIndex}
-                    setCurrentStopIndex={setCurrentStopIndex}
-                    routeStatus={routeStatus}
-                    setRouteStatus={setRouteStatus}
-                    delayMinutes={delayMinutes}
-                    optimizedOrders={optimizedOrders}
-                    onAddOrder={handleAddOrder}
-                    onLogout={handleLogout}
-                />
-                <RoleToggle />
-            </>
-        );
-    }
-
     return (
-        <div className="app-container">
-            <RoleToggle />
-            <header className="app-header">
-                <div className="logo">
-                    <span className="logo-icon">🚚</span>
-                    <h1>RouteOptima <span className="view-tag">Driver</span></h1>
-                </div>
-                <button className="logout-inline" onClick={handleLogout}>Logout</button>
-            </header>
+        <Routes>
+            <Route
+                path="/"
+                element={<LoginPage onLogin={handleLogin} mode="login" />}
+            />
+            <Route
+                path="/login"
+                element={<LoginPage onLogin={handleLogin} mode="login" />}
+            />
+            <Route
+                path="/signup"
+                element={<LoginPage onLogin={handleLogin} mode="signup" />}
+            />
+            <Route
+                path="/admin"
+                element={
+                    <ProtectedRoute user={user} allowedRole="admin">
+                        <AdminPage
+                            orders={orders}
+                            setOrders={setOrders}
+                            route={route}
+                            setRoute={setRoute}
+                            currentStopIndex={currentStopIndex}
+                            setCurrentStopIndex={setCurrentStopIndex}
+                            routeStatus={routeStatus}
+                            setRouteStatus={setRouteStatus}
+                            delayMinutes={delayMinutes}
+                            optimizedOrders={optimizedOrders}
+                            onAddOrder={handleAddOrder}
+                            onDeleteOrder={handleDeleteOrder}
+                            onLogout={handleLogout}
+                            onToggleRole={toggleRole}
+                        />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/driver"
+                element={
+                    <ProtectedRoute user={user} allowedRole="driver">
+                        <DriverView
+                            orders={orders}
+                            setOrders={setOrders}
+                            route={route}
+                            setRoute={setRoute}
+                            currentStopIndex={currentStopIndex}
+                            setCurrentStopIndex={setCurrentStopIndex}
+                            routeStatus={routeStatus}
+                            setRouteStatus={setRouteStatus}
+                            delayMinutes={delayMinutes}
+                            setDelayMinutes={setDelayMinutes}
+                            recalculateRoute={handleRecalculateRoute}
+                            currentOrder={optimizedOrders[currentStopIndex]}
+                            onComplete={handleCompleteOrder}
+                            onLogout={handleLogout}
+                        />
+                    </ProtectedRoute>
+                }
+            />
+        </Routes>
+    );
+}
 
-            <div className="stats-bar">
-                <div className="stat">
-                    <span className="stat-label">Active Stops</span>
-                    <span className="stat-value">{optimizedOrders.length}</span>
-                </div>
-                <div className="stat border-left">
-                    <span className="stat-label">Truck Load</span>
-                    <span className="stat-value">{orders.filter(o => o.status === 'Pending').reduce((s, o) => s + o.weight, 0)} kg</span>
-                </div>
-            </div>
-
-            <main className="content">
-                <DriverView
-                    orders={orders}
-                    setOrders={setOrders}
-                    route={route}
-                    setRoute={setRoute}
-                    currentStopIndex={currentStopIndex}
-                    setCurrentStopIndex={setCurrentStopIndex}
-                    routeStatus={routeStatus}
-                    setRouteStatus={setRouteStatus}
-                    delayMinutes={delayMinutes}
-                    setDelayMinutes={setDelayMinutes}
-                    recalculateRoute={handleRecalculateRoute}
-                    currentOrder={optimizedOrders[currentStopIndex]}
-                    onComplete={handleCompleteOrder}
-                />
-            </main>
-
-            <footer className="app-footer">
-                <p>© 2026 RouteOptima - Logged in as {user.email}</p>
-            </footer>
-        </div>
+function App() {
+    return (
+        <Router>
+            <AppContent />
+        </Router>
     );
 }
 
