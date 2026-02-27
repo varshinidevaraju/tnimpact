@@ -22,7 +22,7 @@ const LoginPage = ({ onLogin, mode = 'login' }) => {
                     <div className="brand-badge">PREMIUM LOGISTICS</div>
                     <div className="brand-logo">
                         <span className="logo-symbol">R</span>
-                        <span className="logo-text">RouteOptima</span>
+                        <span className="logo-text">Routenizz</span>
                     </div>
                     <div className="brand-tagline">
                         Precision navigation for the modern logistics industry.
@@ -30,7 +30,7 @@ const LoginPage = ({ onLogin, mode = 'login' }) => {
                     </div>
                 </div>
                 <div className="pane-footer">
-                    © 2026 RouteOptima Inc. All rights reserved.
+                    © 2026 Routenizz Inc. All rights reserved.
                 </div>
             </div>
 

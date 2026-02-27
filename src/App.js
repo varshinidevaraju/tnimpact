@@ -6,7 +6,7 @@ import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
 import { mockOrders } from './data/mockOrders';
 import { initializeDefaultStorage } from "./utils/storage";
-import { optimizeRoute, optimizeWithPersistentHistory } from './logic/routeOptimizer';
+import { optimizeRoute, optimizeWithPersistentHistory } from './logic/optimizer';
 import { calculateFuelConsumption, calculateCarbonFootprint } from './logic/fuelCalculator';
 import { saveToStorage, getFromStorage } from './utils/storage';
 import { getCurrentTrafficZone, getTrafficMultiplier } from "./data/trafficData";
@@ -111,8 +111,7 @@ function AppContent() {
             currentLoc,
             route,
             currentStopIndex,
-            0.15,
-            delayMinutes
+            { vehicleConsumptionRate: 0.15 }
         );
         setRoute(updatedRoute);
     };

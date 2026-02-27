@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './DriverManagement.css';
 import Dashboard from './Dashboard';
-import { optimizeRoute } from '../logic/routeOptimizer';
+import { optimizeRoute } from '../logic/optimizer';
 
 const mockDrivers = [
     { id: 'DRV-001', name: 'Alex Johnson', status: 'On Route', vehicle: 'Van L-10', rating: 4.8, completedToday: 12, phone: '+1 234 567 8900', avatar: 'AJ' },
@@ -39,12 +39,58 @@ const DriverManagementIcons = {
 const DriverManagement = ({ orders, route, setRoute, optimizedOrders, onAddOrder, onDeleteOrder }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedDriver, setSelectedDriver] = useState(null);
+    const [fleet, setFleet] = useState(mockDrivers);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newDriver, setNewDriver] = useState({
+        name: '',
+        vehicleType: 'van',
+        vehicleNumber: '',
+        phone: '',
+        licenseNo: '',
+        employeeNo: '',
+        maxLoad: '',
+        width: '',
+        breadth: '',
+        height: ''
+    });
 
-
-    const filteredDrivers = mockDrivers.filter(driver =>
+    const filteredDrivers = fleet.filter(driver =>
         driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         driver.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    const handleAddDriver = (e) => {
+        e.preventDefault();
+        if (!newDriver.name || !newDriver.vehicleNumber) return;
+
+        const id = `DRV-${String(fleet.length + 1).padStart(3, '0')}`;
+        const avatar = newDriver.name.split(' ').map(n => n[0]).join('').toUpperCase();
+
+        const driverToAdd = {
+            ...newDriver,
+            id,
+            avatar,
+            vehicle: `${newDriver.vehicleType.toUpperCase()} (${newDriver.vehicleNumber})`,
+            status: 'Idle',
+            rating: 5.0,
+            completedToday: 0
+        };
+
+        setFleet([driverToAdd, ...fleet]);
+        setIsAddModalOpen(false);
+        setNewDriver({
+            name: '',
+            vehicleType: 'van',
+            vehicleNumber: '',
+            phone: '',
+            licenseNo: '',
+            employeeNo: '',
+            maxLoad: '',
+            width: '',
+            breadth: '',
+            height: ''
+        });
+    };
 
     const getStatusClass = (status) => {
         switch (status) {
@@ -112,7 +158,7 @@ const DriverManagement = ({ orders, route, setRoute, optimizedOrders, onAddOrder
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <button className="add-driver-btn">+ Add New Driver</button>
+                    <button className="add-driver-btn" onClick={() => setIsAddModalOpen(true)}>+ Add New Driver</button>
                 </div>
             </div>
 
@@ -169,6 +215,124 @@ const DriverManagement = ({ orders, route, setRoute, optimizedOrders, onAddOrder
                     </div>
                 )}
             </div>
+
+            {/* Add Driver Modal */}
+            {isAddModalOpen && (
+                <div className="dm-modal-overlay" onClick={() => setIsAddModalOpen(false)}>
+                    <div className="dm-modal-content" onClick={e => e.stopPropagation()}>
+                        <div className="dm-modal-header">
+                            <h3>Onboard New Driver</h3>
+                            <button className="close-modal" onClick={() => setIsAddModalOpen(false)}>&times;</button>
+                        </div>
+                        <form onSubmit={handleAddDriver} className="dm-modal-form">
+                            <div className="form-grid">
+                                <div className="form-group full-width">
+                                    <label>Full Name</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. John Doe"
+                                        required
+                                        value={newDriver.name}
+                                        onChange={e => setNewDriver({ ...newDriver, name: e.target.value })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Vehicle Type</label>
+                                    <select
+                                        value={newDriver.vehicleType}
+                                        onChange={e => setNewDriver({ ...newDriver, vehicleType: e.target.value })}
+                                        className="form-select"
+                                    >
+                                        <option value="bike">Bike</option>
+                                        <option value="scooty">Scooty</option>
+                                        <option value="van">Van</option>
+                                        <option value="truck">Truck</option>
+                                        <option value="lorry">Lorry</option>
+                                        <option value="bus">Bus</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Vehicle Number</label>
+                                    <input
+                                        type="text"
+                                        placeholder="TN 01 AB 1234"
+                                        required
+                                        value={newDriver.vehicleNumber}
+                                        onChange={e => setNewDriver({ ...newDriver, vehicleNumber: e.target.value })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>License Number</label>
+                                    <input
+                                        type="text"
+                                        placeholder="TN 01 20240001234"
+                                        value={newDriver.licenseNo}
+                                        onChange={e => setNewDriver({ ...newDriver, licenseNo: e.target.value })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Employee Number</label>
+                                    <input
+                                        type="text"
+                                        placeholder="EMP-10234"
+                                        value={newDriver.employeeNo}
+                                        onChange={e => setNewDriver({ ...newDriver, employeeNo: e.target.value })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Phone Number</label>
+                                    <input
+                                        type="tel"
+                                        placeholder="+91 98765 43210"
+                                        value={newDriver.phone}
+                                        onChange={e => setNewDriver({ ...newDriver, phone: e.target.value })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Max Load (kg)</label>
+                                    <input
+                                        type="number"
+                                        placeholder="500"
+                                        value={newDriver.maxLoad}
+                                        onChange={e => setNewDriver({ ...newDriver, maxLoad: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="container-dimensions">
+                                <label>Container Size (W x B x H)</label>
+                                <div className="dimension-inputs">
+                                    <input
+                                        type="number"
+                                        placeholder="Width"
+                                        value={newDriver.width}
+                                        onChange={e => setNewDriver({ ...newDriver, width: e.target.value })}
+                                    />
+                                    <span>&times;</span>
+                                    <input
+                                        type="number"
+                                        placeholder="Breadth"
+                                        value={newDriver.breadth}
+                                        onChange={e => setNewDriver({ ...newDriver, breadth: e.target.value })}
+                                    />
+                                    <span>&times;</span>
+                                    <input
+                                        type="number"
+                                        placeholder="Height"
+                                        value={newDriver.height}
+                                        onChange={e => setNewDriver({ ...newDriver, height: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-actions">
+                                <button type="button" className="cancel-btn" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
+                                <button type="submit" className="submit-btn" disabled={!newDriver.name || !newDriver.vehicleNumber}>Register Driver</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

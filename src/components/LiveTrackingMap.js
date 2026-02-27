@@ -182,7 +182,7 @@ const LiveTrackingMap = ({ routeCoordinates = [], isNavigating = false, onNavUpd
                 center={vehiclePos}
                 zoom={14}
                 scrollWheelZoom={true}
-                zoomControl={!isNavigating} // Hide zoom buttons during navigation
+                zoomControl={false}
             >
                 <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"

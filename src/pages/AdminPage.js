@@ -89,7 +89,7 @@ const AdminPage = ({ orders, route, setRoute, optimizedOrders, onAddOrder, onDel
                 <div className="sidebar-header">
                     <div className="sidebar-logo">
                         <span className="logo-box">R</span>
-                        <span className="logo-name">Optima</span>
+                        <span className="logo-name">nizz</span>
                     </div>
                 </div>
 

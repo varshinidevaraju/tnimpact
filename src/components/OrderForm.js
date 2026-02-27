@@ -25,12 +25,22 @@ const OrderForm = ({ onAddOrder }) => {
             let lng = null;
             let searchQuery = formData.address;
 
-            // 1. Check if the user pasted a Google Maps URL or raw coordinates
-            const coordMatch = formData.address.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || formData.address.match(/(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
+            // 1. Improved Coordinate Extraction (supports Lat, Lng with comma or space)
+            // Regex handles: "13.08, 80.27", "13.08 80.27", "@13.08,80.27", "(13.08, 80.27)"
+            const coordRegex = /(-?\d+\.\d+)(?:,|\s+)\s*(-?\d+\.\d+)/;
+            const urlCoordRegex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
 
-            if (coordMatch) {
-                lat = parseFloat(coordMatch[1] || coordMatch[2]);
-                lng = parseFloat(coordMatch[2] || coordMatch[3]);
+            const match = formData.address.match(urlCoordRegex) || formData.address.match(coordRegex);
+
+            if (match) {
+                lat = parseFloat(match[1]);
+                lng = parseFloat(match[2]);
+
+                // Safety check: Chennai Lat is ~13, Lng is ~80. If swapped, correct it.
+                // This is a common user error when pasting from certain sources.
+                if (lat > 60 && lat < 95 && lng > 5 && lng < 40) {
+                    [lat, lng] = [lng, lat];
+                }
             } else if (formData.address.includes('google.com/maps') || formData.address.includes('maps.app.goo.gl')) {
                 // If it's a map link without explicit @coords, extract a search query "q=" or fallback to the full path
                 try {
@@ -113,7 +123,7 @@ const OrderForm = ({ onAddOrder }) => {
                     placeholder="e.g. 123 Main St, Chennai"
                 />
                 <small style={{ color: '#667085', fontSize: '0.7rem', marginTop: '0.2rem', display: 'block', opacity: 0.8 }}>
-                    Paste coordinates (e.g. 13.082, 80.270) for accuracy.
+                    Use standard Lat, Lng order (e.g. 13.082, 80.270) for pinpoint accuracy.
                 </small>
             </div>
             <div className="form-row">

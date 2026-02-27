@@ -20,7 +20,7 @@ const MapView = ({ centerLat = 13.0827, centerLng = 80.2707, warehouseName = "Ce
 
     return (
         <div className="map-container">
-            <MapContainer center={position} zoom={13} scrollWheelZoom={false}>
+            <MapContainer center={position} zoom={13} scrollWheelZoom={false} zoomControl={false}>
                 {/* The TileLayer is the background map (using OpenStreetMap) */}
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

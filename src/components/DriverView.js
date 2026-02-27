@@ -112,7 +112,7 @@ const DriverView = ({
                 <div className="empty-command-center">
                     <div className="branding">
                         <span className="logo">R</span>
-                        <h1>RouteOptima Driver</h1>
+                        <h1>Routenizz Driver</h1>
                     </div>
                     <div className="status-message">
                         <div className="pulse-loader"></div>
