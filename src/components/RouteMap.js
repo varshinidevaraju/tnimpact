@@ -46,34 +46,74 @@ const createAddressLabelIcon = (number, label, isSpecial = false) => new L.DivIc
     iconAnchor: [60, 35]
 });
 
-const RouteMap = ({ stops = [] }) => {
+const RouteMap = ({ stops = [], unassignedOrders = [] }) => {
     // Safety Filter: Ensure we only pass valid numeric pairs to Leaflet
     const validStops = (stops || []).filter(o =>
         o && typeof o.lat === 'number' && typeof o.lng === 'number'
     );
 
-    const validCoords = validStops.map(o => [o.lat, o.lng]);
+    // Filter unassigned orders that aren't already in the sequence
+    const stopIds = new Set(validStops.map(s => s.id));
+    const extraPins = (unassignedOrders || []).filter(o =>
+        o && typeof o.lat === 'number' && typeof o.lng === 'number' && !stopIds.has(o.id) && o.status === 'Pending'
+    );
 
-    const [streetPath, setStreetPath] = React.useState([]);
+    const validCoords = validStops.map(o => [o.lat, o.lng]);
+    const allCoords = [...validCoords, ...extraPins.map(p => [p.lat, p.lng])];
+
+    const [fleetPaths, setFleetPaths] = React.useState({});
+
+    const getFleetColor = (driverId) => {
+        if (!driverId || driverId === 'unassigned') return '#667085'; // Default gray for unassigned
+        // Distinct, vibrant colors for the active fleet
+        const colors = [
+            '#2e90fa', // Azure Blue
+            '#f79009', // Deep Orange
+            '#12b76a', // Emerald Green
+            '#ee46bc', // Hot Pink
+            '#7a5af8', // Royal Purple
+            '#f04438', // Scarlet Red
+            '#00d5ff', // Cyber Cyan
+            '#9b2c2c', // Maroon
+            '#4a5568'  // Charcoal
+        ];
+        const hash = String(driverId).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        return colors[hash % colors.length];
+    };
 
     React.useEffect(() => {
-        if (!validCoords || validCoords.length < 2) {
-            setStreetPath([]);
+        if (validStops.length === 0) {
+            setFleetPaths({});
             return;
         }
 
-        const getPath = async () => {
-            const result = await fetchStreetRoute(validCoords);
-            setStreetPath(result.path || validCoords);
-        };
-        getPath();
-    }, [JSON.stringify(validCoords)]);
+        const fetchPaths = async () => {
+            const groups = {};
+            validStops.forEach(s => {
+                const fid = s.driverId || 'unassigned';
+                if (!groups[fid]) groups[fid] = [];
+                groups[fid].push([s.lat, s.lng]);
+            });
 
-    if (validStops.length === 0) {
+            const newPaths = {};
+            for (const fid in groups) {
+                if (groups[fid].length >= 2) {
+                    const result = await fetchStreetRoute(groups[fid]);
+                    newPaths[fid] = result.path;
+                } else {
+                    newPaths[fid] = groups[fid];
+                }
+            }
+            setFleetPaths(newPaths);
+        };
+        fetchPaths();
+    }, [JSON.stringify(validStops)]);
+
+    if (validStops.length === 0 && extraPins.length === 0) {
         return <div className="route-map-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No Valid Route Data Available</div>;
     }
 
-    const centerPosition = [validStops[0].lat, validStops[0].lng];
+    const centerPosition = allCoords.length > 0 ? allCoords[0] : [13.0827, 80.2707];
 
     return (
         <div className="route-map-wrapper">
@@ -84,7 +124,7 @@ const RouteMap = ({ stops = [] }) => {
                 zoomControl={false}
                 style={{ height: '100%', width: '100%' }}
             >
-                <MapController coords={validCoords} />
+                <MapController coords={allCoords} />
 
                 {/* Grayscale CartoDB Positron for the monochromatic look */}
                 <TileLayer
@@ -96,12 +136,41 @@ const RouteMap = ({ stops = [] }) => {
                     opacity={0.6}
                 />
 
-                <Polyline
-                    positions={streetPath.length > 0 ? streetPath : validCoords}
-                    pathOptions={{ color: '#000000', weight: 5, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }}
-                />
+                {Object.entries(fleetPaths).map(([fid, path]) => (
+                    <Polyline
+                        key={`path-${fid}`}
+                        positions={path}
+                        pathOptions={{
+                            color: getFleetColor(fid),
+                            weight: 5,
+                            opacity: 0.8,
+                            lineCap: 'round',
+                            lineJoin: 'round',
+                            dashArray: fid === 'unassigned' ? '10, 10' : null
+                        }}
+                    />
+                ))}
 
-                {/* Draw custom address labels */}
+                {/* Draw unassigned orders as subtle pins */}
+                {extraPins.map((pin) => (
+                    <Marker
+                        key={`pin-${pin.id}`}
+                        position={[pin.lat, pin.lng]}
+                        icon={new L.DivIcon({
+                            className: 'unassigned-pin',
+                            html: `<div class="pin-dot"></div>`,
+                            iconSize: [12, 12],
+                            iconAnchor: [6, 6]
+                        })}
+                    >
+                        <Popup>
+                            <strong>{pin.customer}</strong><br />
+                            Status: Pending (Unoptimized)
+                        </Popup>
+                    </Marker>
+                ))}
+
+                {/* Draw custom address labels for route stops */}
                 {validStops.map((stop, index) => (
                     <Marker
                         key={`${stop.id}-${index}`}

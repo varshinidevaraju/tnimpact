@@ -186,7 +186,28 @@ input:checked+.slider:before {
 }
 
 @media (max-width: 768px) {
+    .settings-pane {
+        padding-bottom: 200px;
+    }
+
     .settings-grid {
         grid-template-columns: 1fr;
+    }
+
+    .save-settings-bar {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1.5rem;
+        text-align: center;
+        bottom: calc(85px + env(safe-area-inset-bottom, 0px));
+        position: fixed;
+        left: 1rem;
+        right: 1rem;
+        z-index: 200;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .save-btn {
+        width: 100%;
     }
 }

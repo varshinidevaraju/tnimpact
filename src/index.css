@@ -1,4 +1,9 @@
+/*
+USES: Core Design System and Global Styling.
+SUPPORT: Defines CSS variables, layout utilities, and premium aesthetics used throughout the application to ensure visual consistency.
+*/
 :root {
+
   --primary: #ffffff;
   --primary-hover: #e0e0e0;
   --accent: #ffffff;
@@ -19,6 +24,7 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -28,6 +34,7 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  overscroll-behavior-y: none;
 }
 
 .app-container {
@@ -444,6 +451,59 @@ select:focus {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
 }
 
+.dispatch-success-banner {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  background: rgba(18, 183, 106, 0.08);
+  border: 1px solid rgba(18, 183, 106, 0.2);
+  border-radius: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(18, 183, 106, 0.05);
+}
+
+.dispatch-success-banner span {
+  color: #32d583;
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dispatch-success-banner button {
+  background: #12b76a;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(18, 183, 106, 0.3);
+}
+
+.dispatch-success-banner button:hover {
+  background: #0e9355;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(18, 183, 106, 0.4);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 
 
 /* Route Cards */
@@ -506,21 +566,25 @@ select:focus {
 }
 
 .delete-card-btn {
-  background: transparent;
-  color: #444;
-  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: #888;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   cursor: pointer;
-  transition: all 0.2s;
-  padding: 4px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 8px;
+  z-index: 10;
+  pointer-events: auto;
 }
 
 .delete-card-btn:hover {
   color: #ff4d4d;
-  background: rgba(255, 77, 77, 0.1);
-  border-radius: 4px;
+  background: rgba(255, 77, 77, 0.15);
+  border-color: rgba(255, 77, 77, 0.3);
+  transform: scale(1.1);
 }
 
 .address {
@@ -532,25 +596,38 @@ select:focus {
 .card-footer {
   display: flex;
   gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
-.priority-badge {
+.priority-badge,
+.weight-badge,
+.fleet-badge {
   padding: 4px 12px;
   border-radius: 6px;
   font-size: 0.7rem;
   font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  height: 24px;
+}
+
+.priority-badge {
   text-transform: uppercase;
   color: #fff;
 }
 
 .weight-badge {
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 0.7rem;
-  font-weight: 800;
   background: rgba(255, 255, 255, 0.05);
   color: #aaa;
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.fleet-badge {
+  background: #f0f2f5;
+  color: #667085;
 }
 
 /* Driver View */
@@ -1320,3 +1397,163 @@ select:focus {
 }
 
 /* development helpers */
+/* Admin Mobile App Experience */
+@media (max-width: 900px) {
+  .admin-layout {
+    flex-direction: column !important;
+    height: 100dvh !important;
+  }
+
+  .admin-sidebar {
+    width: 100% !important;
+    height: auto !important;
+    border-right: none !important;
+    border-top: 1px solid #222 !important;
+    order: 2 !important;
+    /* Move to bottom */
+    flex-shrink: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
+
+  .sidebar-header {
+    display: none !important;
+    /* Hide logo box on mobile bottom nav */
+  }
+
+  .sidebar-user {
+    display: none !important;
+    /* Hide user profile in bottom nav to save space */
+  }
+
+  .sidebar-nav {
+    display: flex !important;
+    flex-direction: row !important;
+    padding: 0.5rem !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    gap: 0.25rem !important;
+    overscroll-behavior-x: none !important;
+  }
+
+  .nav-group {
+    display: flex !important;
+    gap: 0.25rem !important;
+    margin-bottom: 0 !important;
+  }
+
+  .group-label {
+    display: none !important;
+    /* Hide category labels */
+  }
+
+  .sidebar-link {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0.5rem !important;
+    min-width: 72px !important;
+    /* Changed to min-width instead of fixed */
+    text-align: center !important;
+    font-size: 0.65rem !important;
+    gap: 0.25rem !important;
+    border-radius: 12px !important;
+  }
+
+  .link-icon {
+    font-size: 1.25rem !important;
+    margin: 0 !important;
+  }
+
+  /* Main Viewport Adjustments for Mobile */
+  .admin-viewport {
+    order: 1 !important;
+    /* Main content is top */
+    padding-bottom: 0 !important;
+    width: 100vw !important;
+  }
+
+  .viewport-header {
+    padding: 1rem !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100 !important;
+  }
+
+  .viewport-actions {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  .viewport-content {
+    padding: 1rem !important;
+    padding-bottom: 150px !important;
+    /* Clear room for fixed dispatch button */
+  }
+
+  .command-center {
+    gap: 1.5rem !important;
+  }
+
+  .main-control-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .stats-strip .premium-stats-container {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem !important;
+    /* Smaller grid gap for mobile */
+  }
+
+  .premium-stat-card {
+    padding: 1rem !important;
+    gap: 0.75rem !important;
+    border-radius: 1rem !important;
+  }
+
+  .stat-icon-wrapper {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 8px !important;
+  }
+
+  .stat-icon-wrapper svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .stat-value {
+    font-size: 1.5rem !important;
+  }
+
+  .stat-unit {
+    font-size: 0.75rem !important;
+  }
+
+  .stat-title {
+    font-size: 0.6rem !important;
+  }
+
+  .stat-trend {
+    font-size: 0.6rem !important;
+  }
+
+  .pane-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.25rem !important;
+    padding: 1rem !important;
+  }
+
+  .control-pane .dispatch-action-btn {
+    position: fixed !important;
+    bottom: calc(100px + env(safe-area-inset-bottom, 0px)) !important;
+    left: 1rem !important;
+    right: 1rem !important;
+    width: calc(100vw - 2rem) !important;
+    z-index: 200 !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4) !important;
+  }
+}

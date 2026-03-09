@@ -1,7 +1,13 @@
+/**
+ * USES: Frontend route optimization logic.
+ * SUPPORT: Implements a hybrid approach (Nearest Neighbor + 2-opt) for local optimization and acts as the client for the backend Enterprise VRP solver.
+ */
 import { predictTravelTime } from './predictor.js';
+
 import { calculateFuel } from './fuelCalculator.js';
 import { calculateCost } from './costFunction.js';
 import { applyTwoOpt } from './localSearch.js';
+import { fetchTrafficMultiplier } from './trafficClient.js';
 
 /**
  * HYBRID ROUTE OPTIMIZATION ARCHITECTURE
@@ -33,12 +39,12 @@ export const calculateDistance = (lat1, lon1, lat2, lon2) => {
  * Calculates the delay penalty for a specific segment.
  * Includes a fixed penalty for missing time windows.
  */
-export const validateConstraints = (predictedArrivalTime, timeWindowEnd) => {
+export const validateConstraints = (predictedArrivalTime, timeWindowEnd, latePenalty) => {
     let delayPenalty = Math.max(0, predictedArrivalTime - timeWindowEnd);
 
     // Hard Constraint: Penalty for being late
     if (predictedArrivalTime > timeWindowEnd) {
-        delayPenalty += 20;
+        delayPenalty += latePenalty;
     }
 
     return delayPenalty;
@@ -48,7 +54,7 @@ export const validateConstraints = (predictedArrivalTime, timeWindowEnd) => {
  * Stage 2: Initial Construction (Nearest Neighbor)
  * Rapidly builds a starting route by picking the "cheapest" next stop.
  */
-export const buildInitialRoute = (startPoint, stops, config) => {
+export const buildInitialRoute = async (startPoint, stops, config) => {
     let currentPos = { lat: startPoint.lat, lng: startPoint.lng };
     let pendingStops = [...stops];
     let route = [];
@@ -61,11 +67,15 @@ export const buildInitialRoute = (startPoint, stops, config) => {
         for (let i = 0; i < pendingStops.length; i++) {
             const stop = pendingStops[i];
             const dist = calculateDistance(currentPos.lat, currentPos.lng, stop.lat, stop.lng);
-            const time = predictTravelTime(dist, stop.trafficFactor, config.timeOfDayFactor);
-            const fuel = calculateFuel(dist, stop.trafficFactor, config.vehicleConsumptionRate);
 
-            const penalty = validateConstraints(currentTime + time, stop.timeWindowEnd);
-            const cost = calculateCost(time, fuel, penalty);
+            // ML-based traffic prediction or static override
+            const trafficMult = config.staticTrafficMultiplier || await fetchTrafficMultiplier(dist, stop.roadType || 0);
+
+            const time = predictTravelTime(dist, trafficMult, config.baseSpeed);
+            const fuel = calculateFuel(dist, trafficMult, config.vehicleConsumptionRate);
+
+            const penalty = validateConstraints(currentTime + time, stop.timeWindowEnd, config.latePenalty);
+            const cost = calculateCost(time, fuel, penalty, config);
 
             if (cost < lowestStopCost) {
                 lowestStopCost = cost;
@@ -77,7 +87,8 @@ export const buildInitialRoute = (startPoint, stops, config) => {
         route.push(chosenStop);
 
         const dist = calculateDistance(currentPos.lat, currentPos.lng, chosenStop.lat, chosenStop.lng);
-        currentTime += predictTravelTime(dist, chosenStop.trafficFactor, config.timeOfDayFactor);
+        const trafficMult = config.staticTrafficMultiplier || await fetchTrafficMultiplier(dist, chosenStop.roadType || 0);
+        currentTime += predictTravelTime(dist, trafficMult, config.baseSpeed);
         currentPos = { lat: chosenStop.lat, lng: chosenStop.lng };
     }
 
@@ -88,10 +99,10 @@ export const buildInitialRoute = (startPoint, stops, config) => {
  * Stage 3: Local Improvement (2-opt)
  * Refines the constructed route to eliminate inefficiencies.
  */
-export const applyLocalImprovement = (startPoint, initialRoute, config) => {
-    return applyTwoOpt(initialRoute, (testRoute) => {
+export const applyLocalImprovement = async (startPoint, initialRoute, config) => {
+    return applyTwoOpt(initialRoute, async (testRoute) => {
         // Evaluation function for local search
-        const metrics = calculateFinalMetrics(startPoint, testRoute, config);
+        const metrics = await calculateFinalMetrics(startPoint, testRoute, config);
         return metrics.totalCost;
     });
 };
@@ -99,18 +110,38 @@ export const applyLocalImprovement = (startPoint, initialRoute, config) => {
 /**
  * Internal helper to calculate final route statistics.
  */
-const calculateFinalMetrics = (startPoint, route, config) => {
+const calculateFinalMetrics = async (startPoint, route, config) => {
     let currentPos = { lat: startPoint.lat, lng: startPoint.lng };
     let metrics = { totalDistance: 0, totalTime: 0, totalFuel: 0, totalCost: 0, stops: [] };
 
+    // Explicitly add the starting loop journey from Office
+    if (route.length > 0 && startPoint) {
+        metrics.stops.push({
+            id: 'HQ-START-' + (route[0]?.driverId || 'SYS'),
+            customer: 'Office Departure',
+            address: 'Headquarters Coordinates',
+            priority: 'Low',
+            weight: 0,
+            status: 'Pending',
+            lat: startPoint.lat,
+            lng: startPoint.lng,
+            driverId: route[0]?.driverId || '',
+            arrivalTime: 0
+        });
+    }
+
     for (const stop of route) {
         const dist = calculateDistance(currentPos.lat, currentPos.lng, stop.lat, stop.lng);
-        const time = predictTravelTime(dist, stop.trafficFactor, config.timeOfDayFactor);
-        const fuel = calculateFuel(dist, stop.trafficFactor, config.vehicleConsumptionRate);
+
+        // Predict traffic for each segment or static override
+        const trafficMult = config.staticTrafficMultiplier || await fetchTrafficMultiplier(dist, stop.roadType || 0);
+
+        const time = predictTravelTime(dist, trafficMult, config.baseSpeed);
+        const fuel = calculateFuel(dist, trafficMult, config.vehicleConsumptionRate);
 
         const arrivalTime = metrics.totalTime + time;
-        const penalty = validateConstraints(arrivalTime, stop.timeWindowEnd);
-        const cost = calculateCost(time, fuel, penalty);
+        const penalty = validateConstraints(arrivalTime, stop.timeWindowEnd, config.latePenalty);
+        const cost = calculateCost(time, fuel, penalty, config);
 
         metrics.totalDistance += dist;
         metrics.totalTime += time;
@@ -121,30 +152,81 @@ const calculateFinalMetrics = (startPoint, route, config) => {
         currentPos = { lat: stop.lat, lng: stop.lng };
     }
 
+    // Explicitly add the closed-loop return journey back to Office
+    if (route.length > 0 && startPoint) {
+        const returnDist = calculateDistance(currentPos.lat, currentPos.lng, startPoint.lat, startPoint.lng);
+        const returnMult = config.staticTrafficMultiplier || await fetchTrafficMultiplier(returnDist, 0);
+
+        const returnTime = predictTravelTime(returnDist, returnMult, config.baseSpeed);
+        const returnFuel = calculateFuel(returnDist, returnMult, config.vehicleConsumptionRate);
+        const returnCost = calculateCost(returnTime, returnFuel, 0, config);
+
+        metrics.totalDistance += returnDist;
+        metrics.totalTime += returnTime;
+        metrics.totalFuel += returnFuel;
+        metrics.totalCost += returnCost;
+
+        metrics.stops.push({
+            id: 'HQ-RETURN-' + (route[0]?.driverId || 'SYS'),
+            customer: 'Return to Office',
+            address: 'Headquarters Coordinates',
+            priority: 'Low',
+            weight: 0,
+            status: 'Pending',
+            lat: startPoint.lat,
+            lng: startPoint.lng,
+            driverId: route[0]?.driverId || '',
+            arrivalTime: metrics.totalTime
+        });
+    }
+
     return metrics;
 };
 
 /**
  * Default Configuration for Optimization
+ * No hardcoded constants in the logic - all pulled from here.
  */
 const DEFAULT_CONFIG = {
-    vehicleConsumptionRate: 0.15,
-    timeOfDayFactor: 1.0
+    vehicleConsumptionRate: 0.15, // fuelRate: liters/km
+    baseSpeed: 40,               // baseSpeed: km/h
+    latePenalty: 20,             // Fixed penalty minutes for being late
+    timeWeight: 0.6,
+    fuelWeight: 0.3,
+    penaltyWeight: 0.1
 };
 
 /**
- * Public API: Optimize full route
+ * Public API: Optimize full route using backend Enterprise VRP (OR-Tools)
  */
-export const optimizeRoute = (startLocation, stops, config = DEFAULT_CONFIG) => {
+export const optimizeVRP = async (office, vehicles, stops) => {
+    try {
+        const response = await fetch('http://localhost:8001/api/v1/logistics/optimize-route', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ office, vehicles, stops })
+        });
+        if (!response.ok) throw new Error('VRP optimization failed');
+        return await response.ok ? await response.json() : null;
+    } catch (error) {
+        console.error("Enterprise optimization error:", error);
+        return null;
+    }
+};
+
+/**
+ * Public API: Optimize full route (Local Hybrid)
+ */
+export const optimizeRoute = async (startLocation, stops, config = DEFAULT_CONFIG) => {
     // Use merge to allow partial configs
     const finalConfig = { ...DEFAULT_CONFIG, ...config };
 
     // 1. Build
-    const initial = buildInitialRoute(startLocation, stops, finalConfig);
+    const initial = await buildInitialRoute(startLocation, stops, finalConfig);
     // 2. Improve
-    const improved = applyLocalImprovement(startLocation, initial, finalConfig);
+    const improved = await applyLocalImprovement(startLocation, initial, finalConfig);
     // 3. Score
-    const final = calculateFinalMetrics(startLocation, improved, finalConfig);
+    const final = await calculateFinalMetrics(startLocation, improved, finalConfig);
 
     return {
         orderedRoute: final.stops,
@@ -158,18 +240,18 @@ export const optimizeRoute = (startLocation, stops, config = DEFAULT_CONFIG) => 
 /**
  * Public API: Dynamic Re-optimization (for remaining stops)
  */
-export const reoptimizeRoute = (currentLocation, remainingStops, config = DEFAULT_CONFIG) => {
-    return optimizeRoute(currentLocation, remainingStops, config);
+export const reoptimizeRoute = async (currentLocation, remainingStops, config = DEFAULT_CONFIG) => {
+    return await optimizeRoute(currentLocation, remainingStops, config);
 };
 
 /**
  * Public API: Optimized route with history persistence
  */
-export const optimizeWithPersistentHistory = (currentLocation, fullRoute, currentStopIndex, config = DEFAULT_CONFIG) => {
+export const optimizeWithPersistentHistory = async (currentLocation, fullRoute, currentStopIndex, config = DEFAULT_CONFIG) => {
     const completedStops = fullRoute.slice(0, currentStopIndex);
     const pendingStops = fullRoute.slice(currentStopIndex);
 
-    const optimizationResult = optimizeRoute(currentLocation, pendingStops, config);
+    const optimizationResult = await optimizeRoute(currentLocation, pendingStops, config);
 
     return [...completedStops, ...optimizationResult.orderedRoute];
 };

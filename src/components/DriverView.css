@@ -36,6 +36,7 @@
     padding: 8px 16px;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    pointer-events: auto;
 }
 
 .mini-logo {
@@ -55,6 +56,12 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.clickable-fleet:hover {
+    opacity: 0.7;
+    transform: translateX(2px);
 }
 
 .driver-id {
@@ -78,6 +85,31 @@
     background: #22c55e;
     border-radius: 50%;
     box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+}
+
+.gps-pulse.active {
+    background: #22c55e;
+    box-shadow: 0 0 10px #22c55e;
+    animation: gps-blink 1s linear infinite;
+}
+
+.gps-pulse.searching {
+    background: #eab308;
+    box-shadow: 0 0 10px #eab308;
+    animation: gps-blink 1.5s linear infinite;
+}
+
+.gps-pulse.location-unavailable,
+.gps-pulse.permission-denied,
+.gps-pulse.search-timeout {
+    background: #ef4444;
+    box-shadow: 0 0 10px #ef4444;
+}
+
+@keyframes gps-blink {
+    50% {
+        opacity: 0.4;
+    }
 }
 
 .gps-text {
@@ -141,6 +173,30 @@
     z-index: 1001;
     animation: slideDown 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
     transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.nav-next-stop-hint {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    opacity: 1;
+}
+
+.nav-next-stop-hint .label {
+    background: #ffffff;
+    color: #000000;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 900;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+}
+
+.nav-next-stop-hint .value {
+    color: #ffffff;
+    font-weight: 800;
 }
 
 /* Operations Panel (Side) */
@@ -351,5 +407,248 @@
     to {
         transform: translateY(0);
         opacity: 1;
+    }
+}
+
+/* Mobile App Redesign */
+@media (max-width: 768px) {
+    .driver-redesigned-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 100dvh;
+        width: 100vw;
+    }
+
+    .driver-status-bar {
+        top: 0;
+        left: 0;
+        right: 0;
+        padding-top: env(safe-area-inset-top, 10px);
+        background: transparent;
+        z-index: 1005;
+        transition: all 0.3s;
+    }
+
+    /* Original Theme Navigation Flow Banner */
+    .nav-mode .driver-status-bar {
+        background: #000000;
+    }
+
+    /* Hide redundant map overlay to prevent overlapping with driver headers */
+    .driver-redesigned-screen .tracking-overlay {
+        display: none !important;
+    }
+
+    .nav-mode .branding-mini,
+    .nav-mode .stat-pill {
+        background: rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        color: #fff;
+    }
+
+    .nav-mode .mini-logo {
+        background: #fff;
+        color: #000;
+    }
+
+    .nav-mode .fuel {
+        background: rgba(0, 0, 0, 0.15) !important;
+        border-color: transparent !important;
+        color: #fff !important;
+    }
+
+    .floating-nav-panel {
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        border-radius: 0 0 24px 24px;
+        padding: calc(env(safe-area-inset-top, 10px) + 65px) 20px 24px 20px;
+        gap: 16px;
+        background: #000000;
+        border: none;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        align-items: flex-start;
+        z-index: 1004;
+    }
+
+    .nav-turn-indicator svg {
+        width: 48px;
+        height: 48px;
+        color: #fff;
+        margin-top: 4px;
+    }
+
+    .nav-text {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+
+    .nav-text .dist {
+        font-size: 22px;
+        font-weight: 900;
+        color: #fff;
+        margin-bottom: 2px;
+    }
+
+    .nav-text h2 {
+        font-size: 24px;
+        font-weight: 800;
+        color: #fff;
+        line-height: 1.25;
+        margin: 0 0 8px 0;
+    }
+
+    .nav-next-stop-hint {
+        margin-top: 8px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        font-size: 14px;
+    }
+
+    .nav-next-stop-hint .label {
+        background: transparent;
+        color: rgba(255, 255, 255, 0.8);
+        padding: 0;
+        font-size: 13px;
+    }
+
+    .nav-next-stop-hint .value {
+        color: #fff;
+    }
+
+    .floating-ops-container {
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: auto;
+        max-height: none;
+        z-index: 1005;
+    }
+
+    /* Original Dark Bottom Sheet */
+    .ops-card {
+        border-radius: 24px 24px 0 0;
+        padding: 8px 20px calc(24px + env(safe-area-inset-bottom, 0px)) 20px;
+        border-bottom: none;
+        border-left: none;
+        border-right: none;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+        background: rgba(18, 18, 18, 0.95);
+        color: #ffffff;
+        transition: transform 0.4s cubic-bezier(0.215, 0.61, 0.355, 1);
+        transform: translateY(0);
+        will-change: transform;
+    }
+
+    .ops-card.collapsed {
+        /* Hide everything except the drag handle and the top stop-badge header */
+        transform: translateY(calc(100% - 85px - env(safe-area-inset-bottom, 0px)));
+    }
+
+    .ops-drag-handle {
+        width: 100%;
+        height: 24px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        margin-bottom: 4px;
+    }
+
+    .drag-pill {
+        width: 48px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.25);
+        border-radius: 10px;
+    }
+
+    .ops-card h1 {
+        color: #ffffff;
+        font-size: 24px;
+        font-weight: 800;
+    }
+
+    .ops-card .mini-stat span {
+        color: #ffffff;
+    }
+
+    .ops-card .mini-stat label,
+    .ops-card .address {
+        color: #888888;
+    }
+
+    .card-divider {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .progress-mini {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .progress-mini .bar {
+        background: #ffffff;
+    }
+
+    .stop-badge {
+        background: #ffffff;
+        color: #000000;
+        border: none;
+    }
+
+    .ops-stats-row {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .mini-stat {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .action-btn {
+        height: 54px;
+        font-size: 15px;
+        border-radius: 14px;
+    }
+
+    .ops-actions {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .ops-actions .action-btn.secondary.warning {
+        flex: 1;
+        background: rgba(255, 77, 77, 0.05);
+        color: #ff4d4d;
+        border: 1px solid rgba(255, 77, 77, 0.1);
+    }
+
+    .ops-actions .action-btn.secondary:not(.warning) {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Exit Nav button active state */
+    .nav-mode .action-btn.secondary.active {
+        background: rgba(255, 255, 255, 1);
+        color: #000000;
+    }
+
+    .ops-actions .action-btn.primary {
+        width: 100%;
+        margin-top: 8px;
+        background: #ffffff;
+        color: #000000;
+        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
     }
 }

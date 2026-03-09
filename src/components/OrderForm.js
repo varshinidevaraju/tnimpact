@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const OrderForm = ({ onAddOrder }) => {
+const OrderForm = ({ onAddOrder, drivers = [] }) => {
     const [formData, setFormData] = useState({
         customer: '',
         address: '',
@@ -9,6 +9,7 @@ const OrderForm = ({ onAddOrder }) => {
         width: '',
         height: '',
         breadth: '',
+        driverId: '',
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -90,7 +91,7 @@ const OrderForm = ({ onAddOrder }) => {
                 lng: lng
             });
 
-            setFormData({ customer: '', address: '', priority: 'Medium', weight: '', width: '', height: '', breadth: '' });
+            setFormData({ customer: '', address: '', priority: 'Medium', weight: '', width: '', height: '', breadth: '', driverId: '' });
             setError(''); // Clear any previous errors
 
         } catch (err) {
@@ -138,6 +139,22 @@ const OrderForm = ({ onAddOrder }) => {
                         <option value="Low">Low</option>
                     </select>
                 </div>
+                <div className="form-group">
+                    <label>Assign to Fleet (Manager)</label>
+                    <select
+                        value={formData.driverId}
+                        onChange={(e) => setFormData({ ...formData, driverId: e.target.value })}
+                    >
+                        <option value="">Unassigned (Open Queue)</option>
+                        {drivers.map(driver => (
+                            <option key={driver.id} value={driver.id}>
+                                {driver.name} ({driver.vehicle?.split('(')[0] || 'Fleet Unit'})
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+            <div className="form-row">
                 <div className="form-group">
                     <label>Weight (kg)</label>
                     <input

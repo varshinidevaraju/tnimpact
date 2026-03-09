@@ -1,3 +1,7 @@
+/**
+ * USES: Local data persistence wrapper.
+ * SUPPORT: Provides standardized methods for saving and retrieving application state (routes, settings, user sessions) from the browser's LocalStorage.
+ */
 
 export const saveToStorage = (key, data) => {
     try {

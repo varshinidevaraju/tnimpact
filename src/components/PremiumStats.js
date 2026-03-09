@@ -1,4 +1,9 @@
+/**
+ * USES: Analytical KPI dashboard strip.
+ * SUPPORT: Visualizes key performance metrics like total fuel saved, carbon footprint, and route optimization scores for the entire fleet.
+ */
 import React, { useEffect, useState } from 'react';
+
 import './PremiumStats.css';
 import { fetchRouteMetadata } from '../logic/streetRouting';
 
@@ -28,6 +33,21 @@ const Icons = {
             <path d="M13 18l5-5-5-5" />
             <path d="M6 18V6" />
             <path d="M6 12h12" />
+        </svg>
+    ),
+    Currency: () => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23" />
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+    ),
+    Fuel: () => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 22V2h10l7 7v13H3z" />
+            <path d="M14 2v7h7" />
+            <path d="M7 11h10" />
+            <path d="M7 15h10" />
+            <path d="M7 19h7" />
         </svg>
     )
 };
@@ -62,7 +82,7 @@ const StatCard = ({ title, value, unit, icon, colorClass, trend, onClick, compac
     );
 };
 
-const PremiumStats = ({ orders, route, onActiveOrdersClick, onRouteStopsClick, onCompletedOrdersClick, compact, vertical }) => {
+const PremiumStats = ({ orders, route, onActiveOrdersClick, onRouteStopsClick, onCompletedOrdersClick, compact, vertical, stats }) => {
     const activeOrders = orders.filter(o => o.status === 'Pending').length;
     const completedOrders = orders.filter(o => o.status === 'Completed').length;
     const totalStops = route.length;
@@ -151,6 +171,28 @@ const PremiumStats = ({ orders, route, onActiveOrdersClick, onRouteStopsClick, o
                 colorClass="stat-orange"
                 compact={compact}
             />
+            {stats && (
+                <>
+                    <StatCard
+                        title="Total Cost"
+                        value={stats.total_cost > 0 ? `₹${stats.total_cost}` : '0'}
+                        unit=""
+                        icon={<Icons.Currency />}
+                        colorClass="stat-green"
+                        trend={stats.breakdown ? `Driver: ₹${stats.breakdown.labor}` : 'Optimized'}
+                        compact={compact}
+                    />
+                    <StatCard
+                        title="Fuel Used"
+                        value={stats.fuel || 0}
+                        unit="L"
+                        icon={<Icons.Fuel />}
+                        colorClass="stat-blue"
+                        trend={stats.breakdown ? `Cost: ₹${stats.breakdown.fuel}` : 'ECO'}
+                        compact={compact}
+                    />
+                </>
+            )}
         </div>
     );
 };

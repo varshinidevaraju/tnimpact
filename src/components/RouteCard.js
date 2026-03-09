@@ -37,6 +37,7 @@ const RouteCard = ({ order, index, onDelete }) => {
                         {order.priority}
                     </span>
                     <span className="weight-badge">{order.weight} kg</span>
+                    {order.driverId && <span className="fleet-badge">Fleet: {order.driverId}</span>}
                 </div>
             </div>
         </div>

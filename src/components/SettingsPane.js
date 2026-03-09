@@ -1,16 +1,28 @@
+/**
+ * USES: System-wide administrative settings.
+ * SUPPORT: Configures global parameters such as depot location (Office HQ), service times per stop, and default vehicle consumption rates.
+ */
 import React, { useState } from 'react';
+
 import './SettingsPane.css';
 
 const SettingsPane = () => {
-    const [settings, setSettings] = useState({
-        algorithm: 'fastest',
-        routingProfile: 'car',
-        autoDispatch: false,
-        liveTracking: true,
-        maxStops: 50,
-        fuelCost: 1.25,
-        notifications: true,
-        darkMode: false
+    const [settings, setSettings] = useState(() => {
+        const saved = localStorage.getItem('route_settings');
+        return saved ? JSON.parse(saved) : {
+            algorithm: 'fastest',
+            routingProfile: 'car',
+            autoDispatch: false,
+            liveTracking: true,
+            maxStops: 50,
+            fuelCost: 1.25,
+            serviceTimeMin: 10,
+            defaultTimeWindowHours: 4,
+            notifications: true,
+            darkMode: false,
+            officeLat: 13.0827,
+            officeLng: 80.2707
+        };
     });
 
     const handleChange = (e) => {
@@ -22,9 +34,9 @@ const SettingsPane = () => {
     };
 
     const handleSave = () => {
-        // Mock save action
-        console.log("Saving settings...", settings);
+        localStorage.setItem('route_settings', JSON.stringify(settings));
         alert("System Configuration Saved Successfully");
+        window.location.reload();
     };
 
     return (
@@ -70,6 +82,57 @@ const SettingsPane = () => {
                             value={settings.fuelCost}
                             onChange={handleChange}
                             step="0.01"
+                        />
+                    </div>
+                    <div className="setting-item">
+                        <label>Avg. Service Time (Min)</label>
+                        <input
+                            type="number"
+                            name="serviceTimeMin"
+                            value={settings.serviceTimeMin}
+                            onChange={handleChange}
+                            min="1"
+                            max="60"
+                        />
+                    </div>
+                    <div className="setting-item">
+                        <label>Default Time Window (Hours)</label>
+                        <input
+                            type="number"
+                            name="defaultTimeWindowHours"
+                            value={settings.defaultTimeWindowHours}
+                            onChange={handleChange}
+                            min="1"
+                            max="24"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div className="settings-section">
+                <div className="section-header">
+                    <h3>Headquarters Location</h3>
+                    <p>Set the default office coordinates for first and last route points.</p>
+                </div>
+                <div className="settings-grid">
+                    <div className="setting-item">
+                        <label>Office Latitude</label>
+                        <input
+                            type="number"
+                            name="officeLat"
+                            value={settings.officeLat}
+                            onChange={(e) => setSettings({ ...settings, officeLat: parseFloat(e.target.value) })}
+                            step="0.0001"
+                        />
+                    </div>
+                    <div className="setting-item">
+                        <label>Office Longitude</label>
+                        <input
+                            type="number"
+                            name="officeLng"
+                            value={settings.officeLng}
+                            onChange={(e) => setSettings({ ...settings, officeLng: parseFloat(e.target.value) })}
+                            step="0.0001"
                         />
                     </div>
                 </div>

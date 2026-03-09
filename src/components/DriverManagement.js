@@ -1,14 +1,14 @@
+/**
+ * USES: Fleet and personnel management interface.
+ * SUPPORT: Allows admins to add, update, and remove drivers and vehicles, as well as assign specific route orders to vehicle capacities.
+ */
 import React, { useState } from 'react';
+
 import './DriverManagement.css';
 import Dashboard from './Dashboard';
 import { optimizeRoute } from '../logic/optimizer';
 
-const mockDrivers = [
-    { id: 'DRV-001', name: 'Alex Johnson', status: 'On Route', vehicle: 'Van L-10', rating: 4.8, completedToday: 12, phone: '+1 234 567 8900', avatar: 'AJ' },
-    { id: 'DRV-002', name: 'Maria Garcia', status: 'Idle', vehicle: 'Truck H-04', rating: 4.9, completedToday: 0, phone: '+1 234 567 8901', avatar: 'MG' },
-    { id: 'DRV-003', name: 'David Smith', status: 'Offline', vehicle: 'Van L-12', rating: 4.6, completedToday: 8, phone: '+1 234 567 8902', avatar: 'DS' },
-    { id: 'DRV-004', name: 'Sarah Williams', status: 'On Route', vehicle: 'Truck H-02', rating: 5.0, completedToday: 24, phone: '+1 234 567 8903', avatar: 'SW' },
-];
+// mockDrivers removed - using externalDrivers from props
 
 const DriverManagementIcons = {
     Search: () => (
@@ -36,15 +36,20 @@ const DriverManagementIcons = {
     )
 };
 
-const DriverManagement = ({ orders, route, setRoute, optimizedOrders, onAddOrder, onDeleteOrder }) => {
+const DriverManagement = ({ orders, route, setRoute, optimizedOrders, onAddOrder, onDeleteOrder, externalDrivers = [], onAddDriver, onRecalculate, onToggleRole }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedDriver, setSelectedDriver] = useState(null);
-    const [fleet, setFleet] = useState(mockDrivers);
+    const fleet = externalDrivers.length > 0 ? externalDrivers : [];
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [newDriver, setNewDriver] = useState({
+    const [editingDriver, setEditingDriver] = useState(null); // Added editingDriver state
+    const [driverFormData, setDriverFormData] = useState({
         name: '',
         vehicleType: 'van',
         vehicleNumber: '',
+        fuelType: 'Diesel',
+        consumption: 12.0,
+        hourlyWage: 250.0,
+        idleCost: 50.0,
         phone: '',
         licenseNo: '',
         employeeNo: '',
@@ -59,29 +64,88 @@ const DriverManagement = ({ orders, route, setRoute, optimizedOrders, onAddOrder
         driver.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const handleAddDriver = (e) => {
+    const handleOpenModal = (driver = null) => {
+        if (driver) {
+            setEditingDriver(driver);
+            setDriverFormData({
+                name: driver.name,
+                vehicleType: driver.vehicleType || 'van',
+                vehicleNumber: (driver.vehicle || '').match(/\(([^)]+)\)/)?.[1] || driver.vehicleNumber || '',
+                fuelType: driver.fuelType || 'Diesel',
+                consumption: driver.consumption || 12.0,
+                hourlyWage: driver.hourlyWage || 250.0,
+                idleCost: driver.idleCost || 50.0,
+                phone: driver.phone || '',
+                licenseNo: driver.licenseNo || '',
+                employeeNo: driver.employeeNo || '',
+                maxLoad: driver.maxLoad || '',
+                width: driver.width || '',
+                breadth: driver.breadth || '',
+                height: driver.height || ''
+            });
+        } else {
+            setEditingDriver(null);
+            setDriverFormData({
+                name: '',
+                vehicleType: 'van',
+                vehicleNumber: '',
+                fuelType: 'Diesel',
+                consumption: 12.0,
+                hourlyWage: 250.0,
+                idleCost: 50.0,
+                phone: '',
+                licenseNo: '',
+                employeeNo: '',
+                maxLoad: '',
+                width: '',
+                breadth: '',
+                height: ''
+            });
+        }
+        setIsAddModalOpen(true);
+    };
+
+    const handleFormSubmit = (e) => {
         e.preventDefault();
-        if (!newDriver.name || !newDriver.vehicleNumber) return;
+        if (!driverFormData.name || !driverFormData.vehicleNumber) return;
 
-        const id = `DRV-${String(fleet.length + 1).padStart(3, '0')}`;
-        const avatar = newDriver.name.split(' ').map(n => n[0]).join('').toUpperCase();
+        const vehicle = `${driverFormData.vehicleType.toUpperCase()} (${driverFormData.vehicleNumber})`;
+        const avatar = driverFormData.name.split(' ').map(n => n[0]).join('').toUpperCase();
 
-        const driverToAdd = {
-            ...newDriver,
-            id,
-            avatar,
-            vehicle: `${newDriver.vehicleType.toUpperCase()} (${newDriver.vehicleNumber})`,
-            status: 'Idle',
-            rating: 5.0,
-            completedToday: 0
-        };
+        if (editingDriver) {
+            // Handle update logic using onUpdateDriver
+            if (onUpdateDriver) {
+                onUpdateDriver(editingDriver.id, {
+                    ...driverFormData,
+                    vehicle,
+                    avatar,
+                });
+            }
+        } else {
+            // Handle add logic
+            const id = `DRV-${String(fleet.length + 1).padStart(3, '0')}`;
+            const driverToAdd = {
+                ...driverFormData,
+                id,
+                avatar,
+                vehicle,
+                status: 'Idle',
+                rating: 5.0,
+                completedToday: 0
+            };
 
-        setFleet([driverToAdd, ...fleet]);
+            if (onAddDriver) {
+                onAddDriver(driverToAdd);
+            }
+        }
         setIsAddModalOpen(false);
-        setNewDriver({
+        setEditingDriver(null);
+        setDriverFormData({
             name: '',
             vehicleType: 'van',
             vehicleNumber: '',
+            fuelType: 'Diesel',
+            consumption: 12.0,
             phone: '',
             licenseNo: '',
             employeeNo: '',
@@ -135,6 +199,8 @@ const DriverManagement = ({ orders, route, setRoute, optimizedOrders, onAddOrder
                         optimizedOrders={driverOptimizedOrders}
                         onAddOrder={(newOrder) => onAddOrder({ ...newOrder, driverId: selectedDriver.id })}
                         onDeleteOrder={onDeleteOrder}
+                        onRecalculate={onRecalculate}
+                        onToggleRole={onToggleRole}
                     />
                 </div>
             </div>
@@ -195,6 +261,13 @@ const DriverManagement = ({ orders, route, setRoute, optimizedOrders, onAddOrder
                         <div className="driver-actions">
                             <button
                                 className="contact-btn"
+                                style={{ padding: '0.4rem 0.6rem' }}
+                                onClick={() => handleOpenModal(driver)}
+                            >
+                                Edit
+                            </button>
+                            <button
+                                className="contact-btn"
                                 onClick={() => window.location.href = `tel:${driver.phone}`}
                             >
                                 <DriverManagementIcons.Phone /> Contact
@@ -216,15 +289,15 @@ const DriverManagement = ({ orders, route, setRoute, optimizedOrders, onAddOrder
                 )}
             </div>
 
-            {/* Add Driver Modal */}
+            {/* Driver Modal (Add/Edit) */}
             {isAddModalOpen && (
                 <div className="dm-modal-overlay" onClick={() => setIsAddModalOpen(false)}>
                     <div className="dm-modal-content" onClick={e => e.stopPropagation()}>
                         <div className="dm-modal-header">
-                            <h3>Onboard New Driver</h3>
+                            <h3>{editingDriver ? "Edit Driver Details" : "Onboard New Driver"}</h3>
                             <button className="close-modal" onClick={() => setIsAddModalOpen(false)}>&times;</button>
                         </div>
-                        <form onSubmit={handleAddDriver} className="dm-modal-form">
+                        <form onSubmit={handleFormSubmit} className="dm-modal-form">
                             <div className="form-grid">
                                 <div className="form-group full-width">
                                     <label>Full Name</label>
@@ -232,15 +305,15 @@ const DriverManagement = ({ orders, route, setRoute, optimizedOrders, onAddOrder
                                         type="text"
                                         placeholder="e.g. John Doe"
                                         required
-                                        value={newDriver.name}
-                                        onChange={e => setNewDriver({ ...newDriver, name: e.target.value })}
+                                        value={driverFormData.name}
+                                        onChange={e => setDriverFormData({ ...driverFormData, name: e.target.value })}
                                     />
                                 </div>
                                 <div className="form-group">
                                     <label>Vehicle Type</label>
                                     <select
-                                        value={newDriver.vehicleType}
-                                        onChange={e => setNewDriver({ ...newDriver, vehicleType: e.target.value })}
+                                        value={driverFormData.vehicleType}
+                                        onChange={e => setDriverFormData({ ...driverFormData, vehicleType: e.target.value })}
                                         className="form-select"
                                     >
                                         <option value="bike">Bike</option>
@@ -257,8 +330,50 @@ const DriverManagement = ({ orders, route, setRoute, optimizedOrders, onAddOrder
                                         type="text"
                                         placeholder="TN 01 AB 1234"
                                         required
-                                        value={newDriver.vehicleNumber}
-                                        onChange={e => setNewDriver({ ...newDriver, vehicleNumber: e.target.value })}
+                                        value={driverFormData.vehicleNumber}
+                                        onChange={e => setDriverFormData({ ...driverFormData, vehicleNumber: e.target.value })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Fuel Type</label>
+                                    <select
+                                        value={driverFormData.fuelType}
+                                        onChange={e => setDriverFormData({ ...driverFormData, fuelType: e.target.value })}
+                                        className="form-select"
+                                    >
+                                        <option value="Diesel">Diesel</option>
+                                        <option value="Petrol">Petrol</option>
+                                        <option value="Electric">Electric</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Consumption (L/100km)</label>
+                                    <input
+                                        type="number"
+                                        placeholder="12.0"
+                                        step="0.1"
+                                        value={driverFormData.consumption}
+                                        onChange={e => setDriverFormData({ ...driverFormData, consumption: parseFloat(e.target.value) || 0 })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Hourly Wage (₹)</label>
+                                    <input
+                                        type="number"
+                                        placeholder="250.0"
+                                        step="10"
+                                        value={driverFormData.hourlyWage}
+                                        onChange={e => setDriverFormData({ ...driverFormData, hourlyWage: parseFloat(e.target.value) || 0 })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Idle Cost/hr (₹)</label>
+                                    <input
+                                        type="number"
+                                        placeholder="50.0"
+                                        step="5"
+                                        value={driverFormData.idleCost}
+                                        onChange={e => setDriverFormData({ ...driverFormData, idleCost: parseFloat(e.target.value) || 0 })}
                                     />
                                 </div>
                                 <div className="form-group">
@@ -266,8 +381,8 @@ const DriverManagement = ({ orders, route, setRoute, optimizedOrders, onAddOrder
                                     <input
                                         type="text"
                                         placeholder="TN 01 20240001234"
-                                        value={newDriver.licenseNo}
-                                        onChange={e => setNewDriver({ ...newDriver, licenseNo: e.target.value })}
+                                        value={driverFormData.licenseNo}
+                                        onChange={e => setDriverFormData({ ...driverFormData, licenseNo: e.target.value })}
                                     />
                                 </div>
                                 <div className="form-group">
@@ -275,8 +390,8 @@ const DriverManagement = ({ orders, route, setRoute, optimizedOrders, onAddOrder
                                     <input
                                         type="text"
                                         placeholder="EMP-10234"
-                                        value={newDriver.employeeNo}
-                                        onChange={e => setNewDriver({ ...newDriver, employeeNo: e.target.value })}
+                                        value={driverFormData.employeeNo}
+                                        onChange={e => setDriverFormData({ ...driverFormData, employeeNo: e.target.value })}
                                     />
                                 </div>
                                 <div className="form-group">
@@ -284,8 +399,8 @@ const DriverManagement = ({ orders, route, setRoute, optimizedOrders, onAddOrder
                                     <input
                                         type="tel"
                                         placeholder="+91 98765 43210"
-                                        value={newDriver.phone}
-                                        onChange={e => setNewDriver({ ...newDriver, phone: e.target.value })}
+                                        value={driverFormData.phone}
+                                        onChange={e => setDriverFormData({ ...driverFormData, phone: e.target.value })}
                                     />
                                 </div>
                                 <div className="form-group">
@@ -293,8 +408,8 @@ const DriverManagement = ({ orders, route, setRoute, optimizedOrders, onAddOrder
                                     <input
                                         type="number"
                                         placeholder="500"
-                                        value={newDriver.maxLoad}
-                                        onChange={e => setNewDriver({ ...newDriver, maxLoad: e.target.value })}
+                                        value={driverFormData.maxLoad}
+                                        onChange={e => setDriverFormData({ ...driverFormData, maxLoad: e.target.value })}
                                     />
                                 </div>
                             </div>
@@ -305,29 +420,31 @@ const DriverManagement = ({ orders, route, setRoute, optimizedOrders, onAddOrder
                                     <input
                                         type="number"
                                         placeholder="Width"
-                                        value={newDriver.width}
-                                        onChange={e => setNewDriver({ ...newDriver, width: e.target.value })}
+                                        value={driverFormData.width}
+                                        onChange={e => setDriverFormData({ ...driverFormData, width: e.target.value })}
                                     />
                                     <span>&times;</span>
                                     <input
                                         type="number"
                                         placeholder="Breadth"
-                                        value={newDriver.breadth}
-                                        onChange={e => setNewDriver({ ...newDriver, breadth: e.target.value })}
+                                        value={driverFormData.breadth}
+                                        onChange={e => setDriverFormData({ ...driverFormData, breadth: e.target.value })}
                                     />
                                     <span>&times;</span>
                                     <input
                                         type="number"
                                         placeholder="Height"
-                                        value={newDriver.height}
-                                        onChange={e => setNewDriver({ ...newDriver, height: e.target.value })}
+                                        value={driverFormData.height}
+                                        onChange={e => setDriverFormData({ ...driverFormData, height: e.target.value })}
                                     />
                                 </div>
                             </div>
 
                             <div className="form-actions">
                                 <button type="button" className="cancel-btn" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="submit-btn" disabled={!newDriver.name || !newDriver.vehicleNumber}>Register Driver</button>
+                                <button type="submit" className="submit-btn" disabled={!driverFormData.name || !driverFormData.vehicleNumber}>
+                                    {editingDriver ? "Update Driver" : "Register Driver"}
+                                </button>
                             </div>
                         </form>
                     </div>

@@ -30,11 +30,22 @@
     color: #101828;
 }
 
-.blink {
+.blink,
+.gps-pulse-active,
+.gps-pulse-sim {
     width: 8px;
     height: 8px;
-    background: #40c057;
     border-radius: 50%;
+}
+
+.blink,
+.gps-pulse-active {
+    background: #40c057;
+    animation: blinker 1s linear infinite;
+}
+
+.gps-pulse-sim {
+    background: #228be6;
     animation: blinker 1s linear infinite;
 }
 
@@ -85,9 +96,9 @@
 }
 
 .navigating-3d .leaflet-container {
-    transform: rotateX(50deg) scale(1.4);
+    transform: rotateX(54deg) rotateZ(var(--map-rotation)) scale(1.6);
     transform-origin: 50% 60%;
-    transition: transform 1s ease-out;
+    transition: transform 0.8s cubic-bezier(0.2, 0, 0.2, 1);
 }
 
 /* Hide controls in 3D mode for a cleaner look */
@@ -122,17 +133,22 @@
 
 .stop-label {
     position: absolute;
-    top: -24px;
-    background: #000;
+    top: -28px;
+    background: rgba(0, 0, 0, 0.85);
     color: #fff;
-    padding: 2px 8px;
+    padding: 4px 10px;
     border-radius: 6px;
     font-size: 11px;
     font-weight: 800;
     white-space: nowrap;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     pointer-events: none;
     z-index: 10;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(4px);
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .pulse-ring {

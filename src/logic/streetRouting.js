@@ -1,4 +1,9 @@
 /**
+ * USES: Street-level mapping and turn-by-turn navigation utility.
+ * SUPPORT: Converts abstract geographic coordinates into real-world road paths using OSRM, providing precise distance, duration, and navigation instructions for drivers.
+ */
+/**
+
  * Street Routing Utility using OSRM (Open Source Routing Machine)
  * This turns straight lines into real street paths just like Google Maps.
  */
@@ -38,8 +43,60 @@ export const fetchStreetRoute = async (coordinates) => {
                 if (leg.steps) {
                     leg.steps.forEach(step => {
                         if (step.maneuver && step.maneuver.type !== "arrive") {
+                            const type = step.maneuver.type;
+                            const modifierRaw = step.maneuver.modifier ? step.maneuver.modifier.replace('-', ' ') : '';
+                            const modifier = modifierRaw ? modifierRaw.charAt(0).toUpperCase() + modifierRaw.slice(1) : 'Straight';
+
+                            // High accuracy extraction
+                            const street = step.name ? step.name : '';
+                            const ref = step.ref ? ` (${step.ref})` : '';
+                            const destinations = step.destinations ? ` towards ${step.destinations.split(',')[0].trim()}` : '';
+                            const exit = step.maneuver.exit ? ` exit ${step.maneuver.exit}` : '';
+
+                            let target = street ? ` onto ${street}${ref}` : (ref ? ` onto ${ref.replace(/[()]/g, '')}` : '');
+                            target += destinations;
+
+                            let instructionBase = "";
+                            switch (type) {
+                                case 'turn':
+                                    instructionBase = `Turn ${modifier}${target}`;
+                                    break;
+                                case 'new name':
+                                case 'continue':
+                                    instructionBase = `Continue ${modifier}${target}`;
+                                    break;
+                                case 'depart':
+                                    instructionBase = `Head ${modifier}${target}`;
+                                    break;
+                                case 'merge':
+                                    instructionBase = `Merge ${modifier}${target}`;
+                                    break;
+                                case 'ramp':
+                                    instructionBase = `Take the ramp ${modifier}${target}`;
+                                    break;
+                                case 'fork':
+                                    instructionBase = `At the fork, keep ${modifier}${target}`;
+                                    break;
+                                case 'roundabout':
+                                case 'rotary':
+                                    instructionBase = `At the roundabout, take${exit}${target}`;
+                                    break;
+                                case 'end of road':
+                                    instructionBase = `At the end of the road, turn ${modifier}${target}`;
+                                    break;
+                                case 'off ramp':
+                                    instructionBase = `Take the ${modifier} off-ramp${target}`;
+                                    break;
+                                default:
+                                    instructionBase = `${type.charAt(0).toUpperCase() + type.slice(1)} ${modifier}${target}`;
+                            }
+
+                            // Clean formatting anomalies
+                            let finalInstruction = instructionBase.replace(/\s+/g, ' ').replace(' onto ', ' onto ').trim();
+                            if (finalInstruction.endsWith(' onto')) finalInstruction = finalInstruction.replace(' onto', '');
+
                             steps.push({
-                                instruction: `${step.maneuver.type} ${step.maneuver.modifier ? step.maneuver.modifier : ''} ${step.name ? 'onto ' + step.name : ''}`,
+                                instruction: finalInstruction,
                                 distance: step.distance,
                                 location: [step.maneuver.location[1], step.maneuver.location[0]], // [lat, lng]
                             });
@@ -81,5 +138,40 @@ export const fetchRouteMetadata = async (coordinates) => {
         };
     } catch (error) {
         return { distance: 0, duration: 0 };
+    }
+};
+
+/**
+ * Fetches an ML-Optimized route from the local SmartRouteEngine backend.
+ */
+export const fetchOptimizedRoute = async (origin, destination) => {
+    try {
+        const response = await fetch('http://localhost:8001/api/v1/navigation/recalculate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                trip_id: 'smart_ui_sim_' + Date.now(),
+                current_lat: origin.lat,
+                current_lng: origin.lng,
+                dest_lat: destination.lat,
+                dest_lng: destination.lng
+            })
+        });
+
+        if (!response.ok) throw new Error("Backend optimization failed");
+
+        const data = await response.json();
+
+        // Map Python backend response fields natively back to what the local React component expects
+        return {
+            selected_route_geometry: data.best_route,
+            predicted_eta_seconds: data.best_eta * 60, // Convert minutes back to seconds for UI string formatting
+            distance_km: data.distance_km || 0,
+            optimization_score: data.improvement_percent || 0
+        };
+
+    } catch (error) {
+        console.warn("Optimized route fetch failed, falling back to standard OSRM:", error.message);
+        return null;
     }
 };

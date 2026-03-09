@@ -1,5 +1,11 @@
+/**
+ * USES: User authentication portal.
+ * SUPPORT: Provides the UI and logic for logging into the TNImpact system or creating new accounts, integrated with Firebase Auth.
+ */
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+
+import { useNavigate } from 'react-router-dom';
+import { login, signUp } from '../services/firebaseService';
 
 const LoginPage = ({ onLogin, mode = 'login' }) => {
     const [isLogin, setIsLogin] = useState(mode === 'login');
@@ -7,11 +13,27 @@ const LoginPage = ({ onLogin, mode = 'login' }) => {
     const [role, setRole] = useState('driver'); // 'driver' or 'admin'
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (email && password) {
-            onLogin({ email, role });
+        setIsLoading(true);
+        setErrorMsg('');
+
+        try {
+            if (isLogin) {
+                const { user, role: userRole } = await login(email, password);
+                onLogin({ email: user.email, role: userRole });
+            } else {
+                const { user, role: userRole } = await signUp(email, password, role);
+                onLogin({ email: user.email, role: userRole });
+            }
+        } catch (error) {
+            console.error("Auth error:", error);
+            setErrorMsg(error.message);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -56,6 +78,8 @@ const LoginPage = ({ onLogin, mode = 'login' }) => {
                         </button>
                     </div>
 
+                    {errorMsg && <div className="auth-error" style={{ color: '#ff4d4d', fontSize: '0.85rem', marginBottom: '1rem', background: '#fff1f1', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #ffcccc' }}>{errorMsg}</div>}
+
                     <form onSubmit={handleSubmit} className="premium-form">
                         <div className="input-field">
                             <label>Email Address</label>
@@ -80,8 +104,8 @@ const LoginPage = ({ onLogin, mode = 'login' }) => {
                                 required
                             />
                         </div>
-                        <button type="submit" className="prime-login-btn">
-                            {isLogin ? `Continue as ${role === 'driver' ? 'Driver' : 'Admin'}` : 'Get Started'}
+                        <button type="submit" className="prime-login-btn" disabled={isLoading}>
+                            {isLoading ? 'Processing...' : (isLogin ? `Continue as ${role === 'driver' ? 'Driver' : 'Admin'}` : 'Get Started')}
                         </button>
                     </form>
 

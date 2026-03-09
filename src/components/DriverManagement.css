@@ -490,3 +490,28 @@
         opacity: 1;
     }
 }
+
+/* Mobile Responsiveness for Driver Management */
+@media (max-width: 768px) {
+    .dm-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.5rem;
+    }
+
+    .dm-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .search-bar,
+    .search-bar input {
+        width: 100%;
+    }
+
+    .add-driver-btn {
+        width: 100%;
+    }
+}

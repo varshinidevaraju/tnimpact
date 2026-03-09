@@ -1,23 +1,20 @@
 /**
- * Fuel Calculator Module
- * 
- * This module provides a simple way to estimate fuel requirements for a journey
- * based on distance, traffic conditions, and the vehicle's efficiency.
+ * USES: Mathematical calculations for resource consumption.
+ * SUPPORT: Provides accurate estimates for fuel usage and CO2 emissions based on distance and traffic conditions, enabling green-logistics tracking.
  */
-
 /**
+
  * Calculates the amount of fuel needed for a trip.
  * 
  * @param {number} distance - The total distance of the trip.
- * @param {number} trafficFactor - A multiplier for traffic (e.g., 1.0 for no traffic, 1.5 for heavy traffic).
- * @param {number} vehicleConsumptionRate - The fuel consumption rate (e.g., liters per km).
+ * @param {number} trafficMultiplier - ML predicted traffic factor.
+ * @param {number} fuelRate - The fuel consumption rate (liters per km).
  * @returns {number} The total fuel needed, rounded to 2 decimal places.
  */
-export const calculateFuel = (distance, trafficFactor, vehicleConsumptionRate) => {
-    // Formula: distance × trafficFactor × vehicleConsumptionRate
-    const totalFuel = distance * trafficFactor * vehicleConsumptionRate;
+export const calculateFuel = (distance, trafficMultiplier, fuelRate) => {
+    // Formula: distance * fuelRate * traffic_multiplier
+    const totalFuel = distance * fuelRate * trafficMultiplier;
 
-    // Rounding the result to 2 decimal places
     return Math.round(totalFuel * 100) / 100;
 };
 

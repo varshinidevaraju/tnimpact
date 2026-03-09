@@ -1,4 +1,9 @@
-import React, { useState } from 'react';
+/**
+ * USES: Operational interface for field drivers.
+ * SUPPORT: Displays the assigned route, provides turn-by-turn stop details, and handles the completion workflow for individual deliveries.
+ */
+import React, { useState, useMemo } from 'react';
+
 import LiveTrackingMap from './LiveTrackingMap';
 import './DriverView.css';
 
@@ -72,24 +77,35 @@ const DriverIcons = {
 
 const DriverView = ({
     route = [],
-    currentStopIndex,
-    setCurrentStopIndex,
+    currentStopIndex: globalIndex,
+    setCurrentStopIndex: setGlobalIndex,
     routeStatus,
     setRouteStatus,
     delayMinutes,
     setDelayMinutes,
     recalculateRoute,
-    onLogout
+    liveLocation,
+    gpsStatus,
+    onComplete,
+    onToggleRole,
+    onLogout,
+    driverId,
+    onCycleFleet
 }) => {
     const [fuel, setFuel] = useState(100);
     const [isLoading, setIsLoading] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
+    const [isPanelExpanded, setIsPanelExpanded] = useState(true);
     const [navStep, setNavStep] = useState({ instruction: '', distance: 0 });
 
-    const currentStop = route[currentStopIndex];
-    const nextStop = route[currentStopIndex + 1];
-    const isFinished = route.length > 0 && currentStopIndex >= route.length;
-    const progress = route.length > 0 ? Math.round(((currentStopIndex) / route.length) * 100) : 0;
+    // Derive current stop index from completed orders in the filtered route
+    const currentStopIndex = route.findIndex(o => o.status === 'Pending');
+    const effectiveIndex = currentStopIndex === -1 ? route.length : currentStopIndex;
+
+    const currentStop = route[effectiveIndex];
+    const nextStop = route[effectiveIndex + 1];
+    const isFinished = route.length > 0 && effectiveIndex >= route.length;
+    const progress = route.length > 0 ? Math.round((effectiveIndex / route.length) * 100) : 0;
 
     const handleReportDelay = () => {
         setIsLoading(true);
@@ -100,11 +116,22 @@ const DriverView = ({
     };
 
     const handleComplete = () => {
-        if (!isFinished) {
+        if (!isFinished && currentStop && onComplete) {
             setFuel(prev => Math.max(0, prev - 8));
-            setCurrentStopIndex(prev => prev + 1);
+            onComplete(currentStop.id);
         }
     };
+
+    const extractedRouteCoordinates = useMemo(() => {
+        const coords = route.map(stop => [stop.lat, stop.lng]);
+        if (liveLocation) {
+            // Snap to 4 decimal places (~11m) to avoid jitter-induced OSRM refetching
+            const snappedLat = Math.round(liveLocation.lat * 10000) / 10000;
+            const snappedLng = Math.round(liveLocation.lng * 10000) / 10000;
+            return [[snappedLat, snappedLng], ...coords];
+        }
+        return coords;
+    }, [JSON.stringify(route), Math.round(liveLocation?.lat * 10000), Math.round(liveLocation?.lng * 10000)]);
 
     if (route.length === 0) {
         return (
@@ -117,7 +144,15 @@ const DriverView = ({
                     <div className="status-message">
                         <div className="pulse-loader"></div>
                         <h2>Awaiting Dispatch</h2>
-                        <p>Syncing with master network for your daily operations...</p>
+                        <p>No routes assigned to your ID yet. Syncing with master network...</p>
+                        <div className="empty-state-actions" style={{ marginTop: '2rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                            <button className="back-admin-btn" onClick={onToggleRole} style={{ padding: '0.75rem 1.5rem', background: '#333', color: '#fff', border: 'none', borderRadius: '0.75rem', cursor: 'pointer', fontWeight: '700' }}>
+                                Back to Control Center
+                            </button>
+                            <button onClick={onLogout} style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: '#666', border: '1px solid #333', borderRadius: '0.75rem', cursor: 'pointer' }}>
+                                Logout
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -130,11 +165,15 @@ const DriverView = ({
             <div className="driver-status-bar">
                 <div className="branding-mini">
                     <span className="mini-logo">R</span>
-                    <div className="driver-telemetry-text">
-                        <span className="driver-id">D042-ALPHA</span>
+                    <div
+                        className="driver-telemetry-text"
+                        onClick={onCycleFleet}
+                        style={onCycleFleet ? { cursor: 'pointer', transition: 'opacity 0.2s' } : {}}
+                    >
+                        <span className="driver-id">{driverId || route[0]?.driverId || 'D00-SYS'}</span>
                         <div className="gps-status-line">
-                            <span className="gps-pulse"></span>
-                            <span className="gps-text">GPS ACTIVE</span>
+                            <span className={`gps-pulse ${gpsStatus?.toLowerCase().replace(' ', '-')}`}></span>
+                            <span className="gps-text">{gpsStatus?.toUpperCase() || 'GPS ACTIVE'}</span>
                         </div>
                     </div>
                 </div>
@@ -147,10 +186,12 @@ const DriverView = ({
             {/* Background Map View */}
             <div className="driver-viewport-map">
                 <LiveTrackingMap
-                    routeCoordinates={route.map(stop => [stop.lat, stop.lng])}
+                    routeCoordinates={extractedRouteCoordinates}
                     currentStopIndex={currentStopIndex}
                     isNavigating={isNavigating}
                     onNavUpdate={setNavStep}
+                    liveLocation={liveLocation}
+                    stops={route}
                 />
             </div>
 
@@ -159,20 +200,32 @@ const DriverView = ({
                 <div className="floating-nav-panel">
                     <div className="nav-turn-indicator">
                         {navStep.instruction.toLowerCase().includes('left') ? <DriverIcons.ArrowLeft /> :
-                            navStep.instruction.toLowerCase().includes('straight') ? <DriverIcons.ArrowStraight /> :
-                                <DriverIcons.ArrowRight />}
+                            navStep.instruction.toLowerCase().includes('right') ? <DriverIcons.ArrowRight /> :
+                                <DriverIcons.ArrowStraight />}
                     </div>
                     <div className="nav-text">
-                        <span className="dist">{navStep.distance}m</span>
-                        <h2>{navStep.instruction || "Following Optimized Path"}</h2>
-                        <p>Next: {currentStop?.customer}</p>
+                        <span className="dist">
+                            {navStep.distance < 20 ? '✓' : (navStep.distance >= 1000
+                                ? `${(navStep.distance / 1000).toFixed(1)} km`
+                                : `${Math.round(navStep.distance)} m`)}
+                        </span>
+                        <h2>{navStep.distance < 20 ? 'You have arrived!' : (navStep.instruction || "Following Optimized Path")}</h2>
+                        <div className="nav-next-stop-hint">
+                            <span className="label">DESTINATION:</span>
+                            <span className="value" style={{ textTransform: 'capitalize' }}>
+                                {currentStop?.customer || "Next Gateway"}
+                            </span>
+                        </div>
                     </div>
                 </div>
             )}
 
             {/* Floating Operations Panel (Bottom) */}
             <div className="floating-ops-container">
-                <div className="ops-card">
+                <div className={`ops-card ${isPanelExpanded ? 'expanded' : 'collapsed'}`}>
+                    <div className="ops-drag-handle" onClick={() => setIsPanelExpanded(!isPanelExpanded)}>
+                        <div className="drag-pill"></div>
+                    </div>
                     <div className="ops-header">
                         <div className="stop-badge">STOP {currentStopIndex + 1} / {route.length}</div>
                         <div className="progress-mini">

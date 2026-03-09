@@ -1,8 +1,15 @@
+/**
+ * USES: Top-level container for the Administrator experience.
+ * SUPPORT: Orchestrates the Layout, Settings, Driver Management, and Dashboard sub-components within the Admin role context.
+ */
 import React, { useState } from 'react';
+
 import Dashboard from '../components/Dashboard';
 import DriverManagement from '../components/DriverManagement';
 import RouteCard from '../components/RouteCard';
 import SettingsPane from '../components/SettingsPane';
+import SmartRouter from '../components/SmartRouter';
+import AnalyticsPanel from '../components/Analytics';
 
 const Icons = {
     Dashboard: () => (
@@ -67,10 +74,15 @@ const Icons = {
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
         </svg>
+    ),
+    AI: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        </svg>
     )
 };
 
-const AdminPage = ({ orders, route, setRoute, optimizedOrders, onAddOrder, onDeleteOrder, onLogout, onToggleRole }) => {
+const AdminPage = ({ orders, route, setRoute, isCalculating, onRecalculate, onAddOrder, onDeleteOrder, onLogout, onToggleRole, drivers, onAddDriver, onUpdateDriver, stats }) => {
     const [activeTab, setActiveTab] = useState('overview');
 
     const SidebarItem = ({ id, label, icon }) => (
@@ -97,6 +109,7 @@ const AdminPage = ({ orders, route, setRoute, optimizedOrders, onAddOrder, onDel
                     <div className="nav-group">
                         <div className="group-label">Main Operations</div>
                         <SidebarItem id="overview" label="Command Center" icon={<Icons.Dashboard />} />
+                        <SidebarItem id="smart_router" label="AI Smart Router" icon={<Icons.AI />} />
                         <SidebarItem id="active_orders" label="Live Queue" icon={<Icons.Queue />} />
                         <SidebarItem id="route_stops" label="Route Planner" icon={<Icons.Planner />} />
                     </div>
@@ -148,13 +161,19 @@ const AdminPage = ({ orders, route, setRoute, optimizedOrders, onAddOrder, onDel
                             orders={orders}
                             route={route}
                             setRoute={setRoute}
-                            optimizedOrders={optimizedOrders}
+                            isCalculating={isCalculating}
+                            onRecalculate={onRecalculate}
                             onAddOrder={onAddOrder}
                             onDeleteOrder={onDeleteOrder}
                             onActiveOrdersClick={() => setActiveTab('active_orders')}
                             onRouteStopsClick={() => setActiveTab('route_stops')}
                             onCompletedOrdersClick={() => setActiveTab('completed_orders')}
+                            drivers={drivers}
+                            onToggleRole={onToggleRole}
+                            stats={stats}
                         />
+                    ) : activeTab === 'smart_router' ? (
+                        <SmartRouter />
                     ) : activeTab === 'active_orders' ? (
                         <div className="module-view">
                             <div className="module-header">
@@ -173,12 +192,13 @@ const AdminPage = ({ orders, route, setRoute, optimizedOrders, onAddOrder, onDel
                         <div className="module-view">
                             <div className="module-header alternate">
                                 <div className="module-info">
-                                    <div className="sub-branding">ALGORITHMIC OUTPUT</div>
-                                    <p>Smart sequence calculated for maximum distance efficiency and fuel conservation.</p>
+                                    <div className="sub-branding">ALGORITHMIC OUTPUT {isCalculating && ' (CALIBRATING...)'}</div>
+                                    <p>{isCalculating ? 'ML Prediction Engine is analyzing real-time traffic data...' : 'Smart sequence calculated for maximum distance efficiency and fuel conservation.'}</p>
                                 </div>
+                                {isCalculating && <div className="ml-loader-bar"></div>}
                             </div>
-                            <div className="dynamic-grid">
-                                {optimizedOrders.map((order, index) => (
+                            <div className="dynamic-grid" style={{ opacity: isCalculating ? 0.5 : 1 }}>
+                                {route.map((order, index) => (
                                     <RouteCard key={order.id} order={order} index={index} onDelete={onDeleteOrder} />
                                 ))}
                             </div>
@@ -188,10 +208,16 @@ const AdminPage = ({ orders, route, setRoute, optimizedOrders, onAddOrder, onDel
                             orders={orders}
                             route={route}
                             setRoute={setRoute}
-                            optimizedOrders={optimizedOrders}
                             onAddOrder={onAddOrder}
                             onDeleteOrder={onDeleteOrder}
+                            externalDrivers={drivers}
+                            onAddDriver={onAddDriver}
+                            onUpdateDriver={onUpdateDriver}
+                            onRecalculate={onRecalculate}
+                            onToggleRole={onToggleRole}
                         />
+                    ) : activeTab === 'analytics' ? (
+                        <AnalyticsPanel />
                     ) : activeTab === 'settings' ? (
                         <SettingsPane />
                     ) : (
