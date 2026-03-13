@@ -1,0 +1,26 @@
+# render.yaml — Render.com free deployment config for TNImpact FastAPI backend
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: tnimpact-backend
+    runtime: python
+    region: singapore          # Closest free region to Tamil Nadu
+    plan: free                 # Free tier (512 MB RAM, spins down after 15min idle)
+    
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    
+    # Environment variables — set SECRET values in Render dashboard, not here
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: ENV
+        value: production
+      - key: LOG_LEVEL
+        value: WARNING
+      - key: OSRM_URL
+        value: https://router.project-osrm.org
+      # Set these in Render Dashboard > Environment (never commit secrets):
+      # ALLOWED_ORIGINS  →  https://your-app.vercel.app
+      # VITE_API_BASE_URL is frontend-only, set it in Vercel dashboard
